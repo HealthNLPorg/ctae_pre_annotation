@@ -1,0 +1,133 @@
+#
+#  This is an example piper file that will spin up a complete pbj pipeline.
+#
+#  This piper will start the Apache Artemis broker pointed to by the -a parameter on the command line.
+#  It will pause for 5 seconds to allow Artemis to fully launch.
+#
+#  This piper will then launch another instance of Apache cTAKES.
+#  That instance of cTAKES will run the third and final bit of the entire PBJ pipeline.
+#
+#  This piper will then launch a python PBJ pipeline that runs the temporal workflow from the external project
+#  Chemotimelines, which can be found at
+#  https://github.com/HealthNLPorg/chemoTimelinesBaselineSystem
+#
+
+#
+#  To run this pipeline from the command line, use the parameters:
+#  -p Chemotime
+#  -v {python environment Directory}
+#  -a {Artemis Broker Directory}
+#  -i {Input Document Directory}
+#  -o {Output Directory}
+#  --key {UMLS Key}
+#  -d Path to DocTimeRel model
+#  -m Path to Modality model
+#  -t Path to TLink model
+#
+#  A standard command-line option is the specification of whether or not to pip the ctakes-pbj package.
+#  By default ctakes-pbj will be pip ed at the beginning of a run.  You can turn this off with:
+#  --pipPbj no
+#
+#  A non-standard command-line option is the specification of whether or not to pip the chemotime package.
+#  By default chemotime will be pip ed at the beginning of a run.  You can turn this off with:
+#  ++pipChemo no
+#  If used, that must be added at the end of your command.
+#
+
+// Package for the DCTAnnotator.
+package org.apache.ctakes.examples.chemotime.ae
+
+//  Eli uses these settings.  They shouldn't be necessary.
+//set SetJavaHome=no
+//set ForceExit=no
+
+
+
+
+// The huggingface versions of models to use are:
+// -d HealthNLP/pubmedbert_dtr
+// -t HealthNLP/pubmedbert_tlink
+// -m HealthNLP/pubmedbert_conmod
+
+//cli DTRPath=d
+//cli TlinkPath=t
+//cli MedPath=m
+
+// set a variable with the value of our python script.
+// This will be used to specify the python main script, log file, and queue names.
+set ChemoPy=chemotime_pipeline
+
+
+//  Sets up required parameters, starts your Artemis Broker, pips the PBJ project.
+load PbjStarter
+
+//
+// Start another instance of cTAKES, running the pipeline in StartAllExample_end.piper
+// $OutputDirectory will substitute the value of this cTAKES pipeline's value for OutputDirectory.
+// $ArtemisBroker will substitute the value of this cTAKES pipeline's value for ArtemisBroker.
+// $ChemoPy will substitute the value set above.   cTAKES allows concatenations like from_$ChemoPy.
+//
+
+set PiperDir=chemotime/pipeline
+add CtakesRunner Pipeline="-p $PiperDir/Chemotime_End -o $OutputDirectory -a $ArtemisBroker ++rq from_$ChemoPy"
+
+
+//
+// Start the python bit of the full pipeline.
+//
+
+//       An explanation of the following command "cli PipChemo=pipChemo" :
+// Set the value of a user-declared variable to a value coming from the command line.
+// Unlike other parameter names (e.g. OutputDirectory), PipChemo (uppercase P) is not defined in cTAKES.
+// The user is declaring it, and thus it is so.  It can be used in this piper file.
+
+// The user is also declaring a command line option named "pipChemo" (lowercase p).
+// This is not a standard command line parameter like --pipPbj,  -i or -o.
+// If used, it will need to be declared on the command line with double plus ++ instead of double minus --.
+// It will also need to be at the end of the command.  It cannot be before other command line parameters.
+// [rest of command] ++pipChemo yes/no
+
+// Set the user-declared piper variable "PipChemo" to have the same value of command line option "++pipChemo"
+cli PipChemo=pipChemo
+
+// pip the chemotime project and its dependencies.  Note the use of variable $PipChemo as value for RunPip.
+add PythonPipper PipPackage="resources/org/apache/ctakes/examples/chemotime/" Wait=yes RunPip=$PipChemo
+
+// Start a PBJ python pipeline for chemotime.
+// Without specified queue names PBJ will default names "to_{ScriptName" and "from_{ScriptName}".
+// in this case "to_chemotime_pipeline" and "from_chemotime_pipeline".
+// If the main script, specified by $ChemoPy, changes then everything else will change to match.
+
+//add PythonRunner Command="-m chemotime.$ChemoPy -sq PyToJava --o $OutputDirectory --tlink_path $TlinkPath --med_path $MedPath" LogFile=$ChemoPy.log
+//add PythonRunner Command="-m $ChemoPy -rq JavaToPy -sq PyToJava --o $OutputDirectory --use_dtr $DTRPath --use_conmod $ConPath --tlink_path $TlinkPath" LogFile=$ChemoLog
+//add PythonRunner Command="-m chemotime.$ChemoPy --o $OutputDirectory --use_dtr $DTRPath --use_conmod $ConPath --tlink_path $TlinkPath" LogFile=$ChemoPy.log
+
+// From Timelines.piper
+add PythonRunner Command="-m chemotime.$ChemoPy --o $OutputDirectory" LogFile=$ChemoPy.log
+
+
+
+//
+// The pipeline run by this instance of cTAKES.
+//
+
+// Load a simple token processing pipeline from another pipeline file
+load DefaultTokenizerPipeline
+
+// since the time annotation is (was?) out of wack
+add ContextDependentTokenizerAnnotator
+
+set minimumSpan=2
+set exclusionTags=""
+//set LookupXml=org/apache/ctakes/examples/chemotime/dictionary/Chemotherapy.xml
+load DictionarySubPipe
+
+// Temporal processing by cTAKES
+add BackwardsTimeAnnotator classifierJarPath=/org/apache/ctakes/temporal/models/timeannotator/model.jar
+add DCTAnnotator
+add TimeMentionNormalizer timeout=10
+
+// Send CAS to Artemis at the specified queue.  Send stop signal when processing has finished.
+add PbjJmsSender SendQueue=to_$ChemoPy SendStop=yes
+
+add pretty.plaintext.PrettyTextWriterFit SubDirectory=pre_text
