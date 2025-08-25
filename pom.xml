@@ -2,78 +2,83 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <groupId>org.apache.ctakes</groupId>
-        <artifactId>ctakes</artifactId>
-        <version>7.0.0-SNAPSHOT</version>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache.ctakes</groupId>
+    <artifactId>ctakes</artifactId>
+    <version>7.0.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>ctae-pre-annotation</artifactId>
-    <name>CTAE LabelStudio Pre-Annotation Writer</name>
-    <description>Apache cTAKES example module-style tool for getting LabelStudio pre-annotations</description>
+  <artifactId>ctae-pre-annotation</artifactId>
+  <name>CTAE LabelStudio Pre-Annotation Writer</name>
+  <description>Apache cTAKES example module-style tool for getting LabelStudio pre-annotations</description>
 
-    <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <ctakes.version>7.0.0-SNAPSHOT</ctakes.version>
-    </properties>
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <ctakes.version>7.0.0-SNAPSHOT</ctakes.version>
+  </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.ctakes</groupId>
-            <artifactId>ctakes-examples</artifactId>
-            <version>${ctakes.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.ctakes</groupId>
-            <artifactId>ctakes-user-resources</artifactId>
-            <version>${ctakes.version}</version>
-        </dependency>
-    </dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.ctakes</groupId>
+      <artifactId>ctakes-examples</artifactId>
+      <version>${ctakes.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ctakes</groupId>
+      <artifactId>ctakes-user-resources</artifactId>
+      <version>${ctakes.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.17.2</version>
+    </dependency>
+  </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven-resources-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <!--	Copy resources that should be user-editable for testing without requiring recompiling.  -->
-                        <!--	This makes it much easier for developers to find resources. -->
-                        <!--	Permanent edits must still be made in src/main/resources -->
-                        <id>copy-dictionary-resources</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <resources>
-                                <resource>
-                                    <directory>src/user/resources</directory>
-                                </resource>
-                            </resources>
-                            <outputDirectory>${project.basedir}/resources</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>${maven-clean-plugin.version}</version>
-                <configuration>
-                    <filesets>
-                        <!--  Clean up the resources directory so that mvn compile regenerates with any changes.
-                        Use individual ctakes modules.
-                        Do not use universal ctakes/ alone as user may add their own module.  -->
-                        <fileset>
-                            <directory>${project.basedir}/resources/org/apache/ctakes/examples/</directory>
-                        </fileset>
-                    </filesets>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${maven-resources-plugin.version}</version>
+        <executions>
+          <execution>
+            <!--	Copy resources that should be user-editable for testing without requiring recompiling.  -->
+            <!--	This makes it much easier for developers to find resources. -->
+            <!--	Permanent edits must still be made in src/main/resources -->
+            <id>copy-dictionary-resources</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>src/user/resources</directory>
+                </resource>
+              </resources>
+              <outputDirectory>${project.basedir}/resources</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>${maven-clean-plugin.version}</version>
+        <configuration>
+          <filesets>
+            <!--  Clean up the resources directory so that mvn compile regenerates with any changes.
+                 Use individual ctakes modules.
+                 Do not use universal ctakes/ alone as user may add their own module.  -->
+            <fileset>
+              <directory>${project.basedir}/resources/org/apache/ctakes/examples/</directory>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
