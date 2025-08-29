@@ -1,4 +1,4 @@
-package org.apache.ctakes.examples.chemotime.ae;
+package org.apache.ctakes.examples.labelstudio.ae;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.ctakes.core.pipeline.PipeBitInfo;

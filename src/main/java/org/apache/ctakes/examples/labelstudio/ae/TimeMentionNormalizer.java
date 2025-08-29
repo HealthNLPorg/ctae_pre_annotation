@@ -1,4 +1,4 @@
-package org.apache.ctakes.examples.chemotime.ae;
+package org.apache.ctakes.examples.labelstudio.ae;
 
 import org.apache.ctakes.core.pipeline.PipeBitInfo;
 import org.apache.ctakes.core.util.CalendarUtil;
@@ -93,7 +93,7 @@ public class TimeMentionNormalizer extends org.apache.uima.fit.component.JCasAnn
             return;
         }
         final TimeSpan dct = getDocTime( jCas, docId );
-        try ( DotLogger dotter = new DotLogger( LOGGER, "Normalizing {} TimeMentions ", docId ) ) {
+        try ( DotLogger dotter = new DotLogger() ) {
             timeMentions.forEach( t -> normalize( jCas, dct, t ) );
         } catch ( IOException ignored ) {
         }

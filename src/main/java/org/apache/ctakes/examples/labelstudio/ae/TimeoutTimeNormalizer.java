@@ -1,4 +1,4 @@
-package org.apache.ctakes.examples.chemotime.ae;
+package org.apache.ctakes.examples.labelstudio.ae;
 
 import org.clulab.timenorm.scfg.TemporalExpressionParser;
 import org.clulab.timenorm.scfg.TimeSpan;
