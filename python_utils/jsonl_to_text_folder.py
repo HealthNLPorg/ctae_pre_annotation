@@ -72,6 +72,9 @@ def get_ctakes_file_info(json_line: str) -> tuple[str, str]:
             rpt_text = raw_rpt_text_no_html
         case str(raw_rpt_text), None:
             rpt_text = raw_rpt_text
+        case str(raw_rpt_text), str(raw_rpt_text_no_html):
+            # For now just in case
+            rpt_text = raw_rpt_text_no_html
         case _:
             ValueError(
                 f"Report text issues for both RPT_TEXT: {raw_rpt_text}\nand RPT_TEXT_NO_HTML: {raw_rpt_text_no_html}\n found in note {ctakes_fn} :\n{debug_restriction(_note_dict)}"
@@ -82,7 +85,7 @@ def get_ctakes_file_info(json_line: str) -> tuple[str, str]:
 
 def migrate_note(json_line: str, output_dir: str) -> None:
     ctakes_fn, file_content = get_ctakes_file_info(json_line)
-    with open(os.path.join(output_dir, ctakes_fn), mode="w") as f:
+    with open(os.path.join(output_dir, f"{ctakes_fn}.txt"), mode="w") as f:
         f.write(file_content)
 
 
