@@ -2,13 +2,16 @@ package org.healthnlp.annotation;
 
 import org.apache.uima.jcas.JCas;
 
-import java.util.Collection;
+import java.util.List;
 
 public class LabelStudioAnnotation {
     public int id;
-    public Collection<LabelStudioResult> results;
+    public List<LabelStudioResult> result;
 
-    LabelStudioFileAnnotation(JCas jCas){
+    public void setId(int id) {
+        this.id = id;
+    }
 
+    public LabelStudioAnnotation(JCas jCas){
     }
 }
