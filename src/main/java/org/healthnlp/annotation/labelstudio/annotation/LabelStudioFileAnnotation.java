@@ -1,11 +1,12 @@
-package org.healthnlp.annotation;
+package org.healthnlp.annotation.labelstudio.annotation;
 
 import org.apache.uima.jcas.JCas;
+import org.healthnlp.annotation.labelstudio.data.LabelStudioData;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.healthnlp.annotation.Utils.getJCasFilename;
+import static org.healthnlp.annotation.utils.Utils.getJCasFilename;
 
 public class LabelStudioFileAnnotation {
     public int id;

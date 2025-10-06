@@ -1,4 +1,4 @@
-package org.healthnlp.annotation;
+package org.healthnlp.annotation.labelstudio.data;
 
 public class LabelStudioData {
     public String text;

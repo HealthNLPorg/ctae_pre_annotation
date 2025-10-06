@@ -1,4 +1,4 @@
-package org.healthnlp.annotation;
+package org.healthnlp.annotation.utils;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.ctakes.core.resource.FileLocator;
@@ -40,7 +40,7 @@ public class Utils {
                 throw new RuntimeException( e );
             }
         } else {
-            LOGGER.info( "Missing Filter Terms {}, Using Emptyset", filterList );
+            LOGGER.info( "Missing filter terms {}, Using the empty set", filterList );
             return new HashSet<>();
         }
     }

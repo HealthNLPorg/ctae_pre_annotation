@@ -9,7 +9,6 @@ import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.fit.component.JCasAnnotator_ImplBase;
 import org.apache.uima.fit.descriptor.ConfigurationParameter;
 import org.apache.uima.jcas.JCas;
-import org.healthnlp.annotation.Utils.*;
 
 import java.util.*;
 import java.util.function.Function;
@@ -17,12 +16,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.uima.resource.ResourceInitializationException;
-import org.healthnlp.annotation.*;
+import org.healthnlp.annotation.labelstudio.annotation.LabelStudioFileAnnotation;
+import org.healthnlp.annotation.labelstudio.result.ChoicesResult;
+import org.healthnlp.annotation.labelstudio.result.Result;
+import org.healthnlp.annotation.labelstudio.result.LabelsResult;
+import org.healthnlp.annotation.labelstudio.result.TextAreaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.healthnlp.annotation.Utils.getJCasFilename;
-import static org.healthnlp.annotation.Utils.getTerms;
+import static org.healthnlp.annotation.utils.Utils.getJCasFilename;
+import static org.healthnlp.annotation.utils.Utils.getTerms;
 
 // Adhering to https://labelstud.io/guide/tasks#Basic-Label-Studio-JSON-format
 @PipeBitInfo(
@@ -67,7 +70,7 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
     }
 
 
-    private Stream<? extends LabelStudioResult> eventMentionToResults(EventMention eventMention){
+    private Stream<? extends Result> eventMentionToResults(EventMention eventMention){
         Set<String> umlsConcepts = OntologyConceptUtil.getUmlsConcepts(eventMention)
                 .stream()
                 .map( UmlsConcept::getCui )
