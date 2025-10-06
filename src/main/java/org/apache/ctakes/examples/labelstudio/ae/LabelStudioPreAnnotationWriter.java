@@ -1,9 +1,8 @@
 package org.apache.ctakes.examples.labelstudio.ae;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.ctakes.core.pipeline.PipeBitInfo;
-import org.apache.ctakes.core.util.annotation.OntologyConceptUtil;
-import org.apache.ctakes.typesystem.type.refsem.UmlsConcept;
-import org.apache.ctakes.typesystem.type.textsem.EventMention;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.fit.component.JCasAnnotator_ImplBase;
@@ -11,16 +10,12 @@ import org.apache.uima.fit.descriptor.ConfigurationParameter;
 import org.apache.uima.jcas.JCas;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.uima.resource.ResourceInitializationException;
+import org.healthnlp.annotation.labelstudio.annotation.LabelStudioAnnotation;
 import org.healthnlp.annotation.labelstudio.annotation.LabelStudioFileAnnotation;
-import org.healthnlp.annotation.labelstudio.result.ChoicesResult;
 import org.healthnlp.annotation.labelstudio.result.Result;
-import org.healthnlp.annotation.labelstudio.result.LabelsResult;
-import org.healthnlp.annotation.labelstudio.result.TextAreaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +31,7 @@ import static org.healthnlp.annotation.utils.Utils.getTerms;
 public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
     static private final Logger LOGGER = LoggerFactory.getLogger( "LabelStudioPreAnnotationWriter" );
     private final SortedMap<Integer, LabelStudioFileAnnotation> documentIDtoFileAnnotation = new TreeMap<>();
+    private Set<String> IDs = new HashSet<>();
     public static final String PARAM_CTAE_LIST = "ctaeList";
 
     @ConfigurationParameter(
@@ -64,78 +60,13 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
     }
     @Override
     public void process(JCas jCas) throws AnalysisEngineProcessException {
-        LabelStudioFileAnnotation documentFileAnnotation = new LabelStudioFileAnnotation(jCas);
+        LabelStudioFileAnnotation documentFileAnnotation = new LabelStudioFileAnnotation(
+                jCas, this.ctaeTerms, this.rtTerms);
         int documentID = Integer.parseInt(getJCasFilename(jCas).split(",")[0]);
         documentIDtoFileAnnotation.put(documentID, documentFileAnnotation);
     }
 
 
-    private Stream<? extends Result> eventMentionToResults(EventMention eventMention){
-        Set<String> umlsConcepts = OntologyConceptUtil.getUmlsConcepts(eventMention)
-                .stream()
-                .map( UmlsConcept::getCui )
-                .collect( Collectors.toSet() );
-        boolean isCTAE = umlsConcepts
-                .stream()
-                .anyMatch( this.ctaeTerms::contains );
-        boolean isRT = umlsConcepts
-                .stream()
-                .anyMatch( this.rtTerms::contains );
-        Stream<LabelsResult> coreEvent = Stream.empty();
-        if (isCTAE && isRT){
-            LOGGER.info("{} from {} is has CUIS {} which evidence both CTAE and RT - making a duplicate entry",
-                    eventMention.getCoveredText().strip(),
-                    getJCasFilename(eventMention.getJCas()),
-                    umlsConcepts.stream().sorted().collect(Collectors.joining(", ")));
-            coreEvent = Stream.of(
-                    // RT then CTAE
-                    new LabelsResult(
-                            eventMention.getBegin(),
-                            eventMention.getEnd(),
-                            eventMention.getCoveredText(),
-                            List.of("Radiotherapy Treatment")),
-                    new LabelsResult(
-                            eventMention.getBegin(),
-                            eventMention.getEnd(),
-                            eventMention.getCoveredText(),
-                            List.of("Adverse Event")));
-        } else if (isCTAE) {
-            coreEvent = Stream.of(
-                    // CTAE
-                    new LabelsResult(
-                            eventMention.getBegin(),
-                            eventMention.getEnd(),
-                            eventMention.getCoveredText(),
-                            List.of("Adverse Event")));
-        } else if (isRT){
-            coreEvent = Stream.of(
-                    // RT
-                    new LabelsResult(
-                            eventMention.getBegin(),
-                            eventMention.getEnd(),
-                            eventMention.getCoveredText(),
-                            List.of("Radiotherapy Treatment")));
-        } else {
-            LOGGER.info("{} from {} is has CUIS {} none of which evidence CTAE or RT - returning nothing",
-                    eventMention.getCoveredText().strip(),
-                    getJCasFilename(eventMention.getJCas()),
-                    umlsConcepts.stream().sorted().collect(Collectors.joining(", ")));
-            return coreEvent;
-        }
-        Stream<TextAreaResult> eventCUIs = umlsConcepts
-                .stream()
-                .map(e -> new TextAreaResult(
-                        eventMention.getBegin(), eventMention.getEnd(), List.of(e)));
-        Stream<ChoicesResult> eventDTR = Stream.of(
-                new ChoicesResult(
-                        eventMention.getBegin(),
-                        eventMention.getEnd(),
-                        eventMention.getCoveredText(),
-                        List.of(eventMention.getEvent().getProperties().getDocTimeRel())
-                ));
-        return Stream.of(coreEvent, eventCUIs, eventDTR)
-                .flatMap(Function.identity());
-    }
 
     protected String getSaltString() {
         String SALTCHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
@@ -150,6 +81,32 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
 
     @Override
     public void collectionProcessComplete() throws AnalysisEngineProcessException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        int tries = 10;
         super.collectionProcessComplete();
+        for (LabelStudioFileAnnotation labelStudioFileAnnotation: documentIDtoFileAnnotation.values()){
+            for (LabelStudioAnnotation labelStudioAnnotation: labelStudioFileAnnotation.annotations){
+                for (Result result: labelStudioAnnotation.result){
+                    for (int i = 0; i < tries; i++) {
+                        String attemptedId = getSaltString();
+                        if (!IDs.contains(attemptedId)){
+                            result.setId(attemptedId);
+                            IDs.add(attemptedId);
+                        }
+                    }
+                }
+            }
+        }
+        try {
+            String fullResult = objectMapper.writeValueAsString(
+                    documentIDtoFileAnnotation
+                            .values()
+                            .stream()
+                            .sorted()
+                            .collect(Collectors.toList())
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
