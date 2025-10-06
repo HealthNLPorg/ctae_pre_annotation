@@ -92,6 +92,8 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
                         if (!IDs.contains(attemptedId)){
                             result.setId(attemptedId);
                             IDs.add(attemptedId);
+                            // there's probably a better way but for now
+                            break;
                         }
                     }
                 }
