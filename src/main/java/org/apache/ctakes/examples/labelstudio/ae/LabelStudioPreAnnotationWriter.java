@@ -89,15 +89,32 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
                     umlsConcepts.stream().sorted().collect(Collectors.joining(", ")));
             coreEvent = Stream.of(
                     // RT then CTAE
-                    new LabelsResult(), new LabelsResult());
+                    new LabelsResult(
+                            eventMention.getBegin(),
+                            eventMention.getEnd(),
+                            eventMention.getCoveredText(),
+                            List.of("Radiotherapy Treatment")),
+                    new LabelsResult(
+                            eventMention.getBegin(),
+                            eventMention.getEnd(),
+                            eventMention.getCoveredText(),
+                            List.of("Adverse Event")));
         } else if (isCTAE) {
             coreEvent = Stream.of(
                     // CTAE
-                    new LabelsResult());
+                    new LabelsResult(
+                            eventMention.getBegin(),
+                            eventMention.getEnd(),
+                            eventMention.getCoveredText(),
+                            List.of("Adverse Event")));
         } else if (isRT){
             coreEvent = Stream.of(
                     // RT
-                    new LabelsResult());
+                    new LabelsResult(
+                            eventMention.getBegin(),
+                            eventMention.getEnd(),
+                            eventMention.getCoveredText(),
+                            List.of("Radiotherapy Treatment")));
         } else {
             LOGGER.info("{} from {} is has CUIS {} none of which evidence CTAE or RT - returning nothing",
                     eventMention.getCoveredText().strip(),
@@ -107,8 +124,15 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
         }
         Stream<TextAreaResult> eventCUIs = umlsConcepts
                 .stream()
-                .map(e -> new TextAreaResult());
-        Stream<ChoicesResult> eventDTR = Stream.of(new ChoicesResult());
+                .map(e -> new TextAreaResult(
+                        eventMention.getBegin(), eventMention.getEnd(), List.of(e)));
+        Stream<ChoicesResult> eventDTR = Stream.of(
+                new ChoicesResult(
+                        eventMention.getBegin(),
+                        eventMention.getEnd(),
+                        eventMention.getCoveredText(),
+                        List.of(eventMention.getEvent().getProperties().getDocTimeRel())
+                ));
         return Stream.of(coreEvent, eventCUIs, eventDTR)
                 .flatMap(Function.identity());
     }
