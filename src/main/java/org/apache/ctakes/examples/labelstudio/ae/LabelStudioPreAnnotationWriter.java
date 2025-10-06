@@ -1,24 +1,16 @@
 package org.apache.ctakes.examples.labelstudio.ae;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.ctakes.core.pipeline.PipeBitInfo;
-import org.apache.ctakes.core.resource.FileLocator;
 import org.apache.ctakes.core.util.annotation.OntologyConceptUtil;
 import org.apache.ctakes.typesystem.type.refsem.UmlsConcept;
-import org.apache.ctakes.typesystem.type.structured.DocumentPath;
 import org.apache.ctakes.typesystem.type.textsem.EventMention;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.fit.component.JCasAnnotator_ImplBase;
 import org.apache.uima.fit.descriptor.ConfigurationParameter;
-import org.apache.uima.fit.util.JCasUtil;
 import org.apache.uima.jcas.JCas;
+import org.healthnlp.annotation.Utils.*;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,6 +20,10 @@ import org.apache.uima.resource.ResourceInitializationException;
 import org.healthnlp.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.healthnlp.annotation.Utils.getJCasFilename;
+import static org.healthnlp.annotation.Utils.getTerms;
+
 // Adhering to https://labelstud.io/guide/tasks#Basic-Label-Studio-JSON-format
 @PipeBitInfo(
         name = "LabelStudioPreAnnotationWriter",
@@ -70,10 +66,6 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
         documentIDtoFileAnnotation.put(documentID, documentFileAnnotation);
     }
 
-    public static String getJCasFilename(JCas jCas){
-        DocumentPath documentPath = JCasUtil.select( jCas, DocumentPath.class ).iterator().next();
-        return FilenameUtils.getBaseName( documentPath.getDocumentPath() );
-    }
 
     private Stream<? extends LabelStudioResult> eventMentionToResults(EventMention eventMention){
         Set<String> umlsConcepts = OntologyConceptUtil.getUmlsConcepts(eventMention)
@@ -82,10 +74,10 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
                 .collect( Collectors.toSet() );
         boolean isCTAE = umlsConcepts
                 .stream()
-                .anyMatch(e -> this.ctaeTerms.contains(e));
+                .anyMatch( this.ctaeTerms::contains );
         boolean isRT = umlsConcepts
                 .stream()
-                .anyMatch(e -> this.rtTerms.contains(e));
+                .anyMatch( this.rtTerms::contains );
         Stream<LabelsResult> coreEvent = Stream.empty();
         if (isCTAE && isRT){
             LOGGER.info("{} from {} is has CUIS {} which evidence both CTAE and RT - making a duplicate entry",
@@ -132,26 +124,5 @@ public class LabelStudioPreAnnotationWriter extends JCasAnnotator_ImplBase {
     @Override
     public void collectionProcessComplete() throws AnalysisEngineProcessException {
         super.collectionProcessComplete();
-    }
-
-    private Set<String> getTerms(String filterList) {
-        if ( filterList != null && !filterList.isEmpty() ) {
-            try ( InputStream descriptorStream = FileLocator.getAsStream( filterList ) ) {
-                return new BufferedReader(
-                        new InputStreamReader(
-                                descriptorStream,
-                                StandardCharsets.UTF_8
-                        )
-                ).lines()
-                        .map( String::toLowerCase )
-                        .map( String::trim )
-                        .collect( Collectors.toSet() );
-            } catch ( IOException e ) {
-                throw new RuntimeException( e );
-            }
-        } else {
-            LOGGER.info( "Missing Filter List, Using Empty List" );
-            return new HashSet<>();
-        }
     }
 }

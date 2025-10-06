@@ -1,10 +1,11 @@
 package org.healthnlp.annotation;
 
-import org.apache.ctakes.examples.labelstudio.ae.LabelStudioPreAnnotationWriter;
 import org.apache.uima.jcas.JCas;
 
 import java.util.LinkedList;
 import java.util.List;
+
+import static org.healthnlp.annotation.Utils.getJCasFilename;
 
 public class LabelStudioFileAnnotation {
     public int id;
@@ -19,7 +20,7 @@ public class LabelStudioFileAnnotation {
     }
 
     public LabelStudioFileAnnotation(JCas jCas){
-        this.file_upload = LabelStudioPreAnnotationWriter.getJCasFilename(jCas);
+        this.file_upload = getJCasFilename(jCas);
         this.data = new LabelStudioData(jCas.getDocumentText());
         this.annotations = List.of(new LabelStudioAnnotation(jCas));
     }
