@@ -31,14 +31,17 @@ public class LabelStudioAnnotation {
     }
 
     public LabelStudioAnnotation(JCas jCas, Set<String> ctaeTerms, Set<String> rtTerms){
+        Function<EventMention, Stream<? extends Result>> eventMentionToResultsLocal =
+                e -> this.eventMentionToResults(e, ctaeTerms, rtTerms);
         result = JCasUtil.select(jCas, EventMention.class)
                 .stream()
-                .flatMap(e -> this.eventMentionToResults(e, ctaeTerms, rtTerms))
+                .flatMap(eventMentionToResultsLocal)
                 .sorted()
                 .collect(Collectors.toList());
     }
 
-    private Stream<? extends Result> eventMentionToResults(EventMention eventMention, Set<String> ctaeTerms, Set<String> rtTerms){
+    private Stream<? extends Result> eventMentionToResults(
+            EventMention eventMention, Set<String> ctaeTerms, Set<String> rtTerms){
         Set<String> umlsConcepts = OntologyConceptUtil.getUmlsConcepts(eventMention)
                 .stream()
                 .map( UmlsConcept::getCui )
@@ -90,10 +93,13 @@ public class LabelStudioAnnotation {
                     umlsConcepts.stream().sorted().collect(Collectors.joining(", ")));
             return coreEvent;
         }
+        Function<String, TextAreaResult> CUIToLabelStudioResult = cui -> new TextAreaResult(
+                eventMention.getBegin(),
+                eventMention.getEnd(),
+                List.of(cui));
         Stream<TextAreaResult> eventCUIs = umlsConcepts
                 .stream()
-                .map(e -> new TextAreaResult(
-                        eventMention.getBegin(), eventMention.getEnd(), List.of(e)));
+                .map(CUIToLabelStudioResult);
         Stream<ChoicesResult> eventDTR = Stream.of(
                 new ChoicesResult(
                         eventMention.getBegin(),

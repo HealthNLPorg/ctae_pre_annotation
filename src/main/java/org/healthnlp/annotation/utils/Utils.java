@@ -33,7 +33,8 @@ public class Utils {
                                 StandardCharsets.UTF_8
                         )
                 ).lines()
-                        .map( String::toLowerCase )
+                        //.map( String::toLowerCase )
+                        // maintain CUI case
                         .map( String::trim )
                         .collect( Collectors.toSet() );
             } catch ( IOException e ) {
