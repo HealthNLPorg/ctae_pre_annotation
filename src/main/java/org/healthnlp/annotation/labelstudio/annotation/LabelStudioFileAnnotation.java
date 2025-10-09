@@ -5,7 +5,6 @@ import org.healthnlp.annotation.labelstudio.data.LabelStudioData;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import static org.healthnlp.annotation.utils.Utils.getJCasFilename;
 
@@ -21,10 +20,10 @@ public class LabelStudioFileAnnotation implements Comparable<LabelStudioFileAnno
         this.id = id;
     }
 
-    public LabelStudioFileAnnotation(JCas jCas, Set<String> ctaeTerms, Set<String> rtTerms){
+    public LabelStudioFileAnnotation(JCas jCas){
         this.file_upload = getJCasFilename(jCas);
         this.data = new LabelStudioData(jCas.getDocumentText());
-        this.annotations = List.of(new LabelStudioAnnotation(jCas, ctaeTerms, rtTerms));
+        this.annotations = List.of(new LabelStudioAnnotation(jCas));
     }
 
     @Override

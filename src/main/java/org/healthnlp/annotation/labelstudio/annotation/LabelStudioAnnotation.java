@@ -3,6 +3,8 @@ package org.healthnlp.annotation.labelstudio.annotation;
 import org.apache.ctakes.core.util.annotation.OntologyConceptUtil;
 import org.apache.ctakes.typesystem.type.refsem.UmlsConcept;
 import org.apache.ctakes.typesystem.type.textsem.EventMention;
+import org.apache.ctakes.typesystem.type.textsem.ProcedureMention;
+import org.apache.ctakes.typesystem.type.textsem.SignSymptomMention;
 import org.apache.uima.fit.util.JCasUtil;
 import org.apache.uima.jcas.JCas;
 import org.healthnlp.annotation.labelstudio.result.ChoicesResult;
@@ -30,34 +32,33 @@ public class LabelStudioAnnotation {
         this.id = id;
     }
 
-    public LabelStudioAnnotation(JCas jCas, Set<String> ctaeTerms, Set<String> rtTerms){
-        Function<EventMention, Stream<? extends Result>> eventMentionToResultsLocal =
-                e -> this.eventMentionToResults(e, ctaeTerms, rtTerms);
-        result = JCasUtil.select(jCas, EventMention.class)
-                .stream()
-                .flatMap(eventMentionToResultsLocal)
-                .sorted()
+    public LabelStudioAnnotation(JCas jCas){
+        result = Stream.concat(JCasUtil.select(jCas, SignSymptomMention.class).stream(),
+                        JCasUtil.select(jCas, ProcedureMention.class).stream())
+                .flatMap(this::eventMentionToResults)
+                // .sorted()
                 .collect(Collectors.toList());
     }
 
     private Stream<? extends Result> eventMentionToResults(
-            EventMention eventMention, Set<String> ctaeTerms, Set<String> rtTerms){
-        Set<String> umlsConcepts = OntologyConceptUtil.getUmlsConcepts(eventMention)
+            EventMention eventMention){
+        Set<String> CUIs = OntologyConceptUtil.getUmlsConcepts(eventMention)
                 .stream()
                 .map( UmlsConcept::getCui )
                 .collect( Collectors.toSet() );
-        boolean isCTAE = umlsConcepts
+        Set<String> TUIs =  OntologyConceptUtil.getUmlsConcepts(eventMention)
                 .stream()
-                .anyMatch( ctaeTerms::contains );
-        boolean isRT = umlsConcepts
-                .stream()
-                .anyMatch( rtTerms::contains );
+                .map( UmlsConcept::getTui )
+                .collect( Collectors.toSet() );
+        // They're currently mutually exclusive but who knows
+        boolean isCTAE = TUIs.contains("T033");
+        boolean isRT = TUIs.contains("T061");
         Stream<LabelsResult> coreEvent = Stream.empty();
         if (isCTAE && isRT){
             LOGGER.info("{} from {} is has CUIS {} which evidence both CTAE and RT - making a duplicate entry",
                     eventMention.getCoveredText().strip(),
                     getJCasFilename(eventMention.getJCas()),
-                    umlsConcepts.stream().sorted().collect(Collectors.joining(", ")));
+                    CUIs.stream().sorted().collect(Collectors.joining(", ")));
             coreEvent = Stream.of(
                     // RT then CTAE
                     new LabelsResult(
@@ -90,14 +91,14 @@ public class LabelStudioAnnotation {
             LOGGER.info("{} from {} is has CUIS {} none of which evidence CTAE or RT - returning nothing",
                     eventMention.getCoveredText().strip(),
                     getJCasFilename(eventMention.getJCas()),
-                    umlsConcepts.stream().sorted().collect(Collectors.joining(", ")));
+                    CUIs.stream().sorted().collect(Collectors.joining(", ")));
             return coreEvent;
         }
         Function<String, TextAreaResult> CUIToLabelStudioResult = cui -> new TextAreaResult(
                 eventMention.getBegin(),
                 eventMention.getEnd(),
                 List.of(cui));
-        Stream<TextAreaResult> eventCUIs = umlsConcepts
+        Stream<TextAreaResult> eventCUIs = CUIs
                 .stream()
                 .map(CUIToLabelStudioResult);
         Stream<ChoicesResult> eventDTR = Stream.of(
@@ -105,7 +106,8 @@ public class LabelStudioAnnotation {
                         eventMention.getBegin(),
                         eventMention.getEnd(),
                         eventMention.getCoveredText(),
-                        List.of(eventMention.getEvent().getProperties().getDocTimeRel())
+                        // List.of(eventMention.getEvent().getProperties().getDocTimeRel())
+                        List.of("TO_DEBUG")
                 ));
         return Stream.of(coreEvent, eventCUIs, eventDTR)
                 .flatMap(Function.identity());

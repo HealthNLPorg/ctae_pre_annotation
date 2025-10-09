@@ -1,6 +1,4 @@
-package org.apache.ctakes.examples.labelstudio
-package org.healthnlp.annotation.labelstudio
-
+package org.apache.ctakes.examples.labelstudio.cc
 set SetJavaHome=no
 
 set minimumSpan=2
@@ -15,11 +13,11 @@ set WriteBanner=yes
 load DefaultTokenizerPipeline
 
 // Add non-core annotators
-add ContextDependentTokenizerAnnotator
+// add ContextDependentTokenizerAnnotator
 
 // Dictionary module requires tokens so needs to be loaded after the tokenization stack
 load DictionarySubPipe
 
-add DocTimeRelAnnotator classifierJarPath=/org/apache/ctakes/temporal/models/doctimerel/model.jar
+// add DocTimeRelAnnotator classifierJarPath=/org/apache/ctakes/temporal/models/doctimerel/model.jar
 
-add SemanticTableFileWriter
+add LabelStudioPreAnnotationWriter ctaeList=org/apache/ctakes/dictionary/lookup/fast/termcategories/ctae_cuis.txt rtList=org/apache/ctakes/dictionary/lookup/fast/termcategories/rt_cuis.txt
