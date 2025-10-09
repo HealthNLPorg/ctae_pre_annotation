@@ -17,7 +17,7 @@
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ctakes.version>6.0.0</ctakes.version>
+    <ctakes.version>7.0.0-SNAPSHOT</ctakes.version>
   </properties>
 
   <dependencies>
@@ -44,6 +44,11 @@
       <dependency>
           <groupId>org.apache.ctakes</groupId>
           <artifactId>ctakes-context-tokenizer</artifactId>
+          <version>${ctakes.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.apache.ctakes</groupId>
+          <artifactId>ctakes-pos-tagger</artifactId>
           <version>${ctakes.version}</version>
       </dependency>
       <dependency>

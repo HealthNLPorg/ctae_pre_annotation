@@ -36,7 +36,7 @@ public class LabelStudioAnnotation {
         result = Stream.concat(JCasUtil.select(jCas, SignSymptomMention.class).stream(),
                         JCasUtil.select(jCas, ProcedureMention.class).stream())
                 .flatMap(this::eventMentionToResults)
-                // .sorted()
+                //.sorted()
                 .collect(Collectors.toList());
     }
 
@@ -106,8 +106,7 @@ public class LabelStudioAnnotation {
                         eventMention.getBegin(),
                         eventMention.getEnd(),
                         eventMention.getCoveredText(),
-                        // List.of(eventMention.getEvent().getProperties().getDocTimeRel())
-                        List.of("TO_DEBUG")
+                        List.of(eventMention.getEvent().getProperties().getDocTimeRel())
                 ));
         return Stream.of(coreEvent, eventCUIs, eventDTR)
                 .flatMap(Function.identity());
