@@ -9,7 +9,6 @@ import org.apache.ctakes.typesystem.type.textsem.ProcedureMention;
 import org.apache.ctakes.typesystem.type.textsem.SignSymptomMention;
 import org.apache.uima.fit.util.JCasUtil;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.tcas.Annotation;
 import org.healthnlp.annotation.labelstudio.result.ChoicesResult;
 import org.healthnlp.annotation.labelstudio.result.LabelsResult;
 import org.healthnlp.annotation.labelstudio.result.Result;
@@ -19,15 +18,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.healthnlp.annotation.utils.Utils.getIndices;
+import static org.healthnlp.annotation.utils.Utils.getAnnotationIndices;
 import static org.healthnlp.annotation.utils.Utils.getJCasFilename;
 
 public class LabelStudioAnnotation {
@@ -43,7 +40,7 @@ public class LabelStudioAnnotation {
     public LabelStudioAnnotation(JCas jCas){
         result = Stream.concat(JCasUtil.select(jCas, SignSymptomMention.class).stream(),
                         JCasUtil.select(jCas, ProcedureMention.class).stream())
-                .collect(Collectors.groupingBy(Utils::getIndices))
+                .collect(Collectors.groupingBy(Utils::getAnnotationIndices))
                 .values()
                 .stream()
                 .flatMap(this::spanMentionsToResults)
@@ -54,14 +51,14 @@ public class LabelStudioAnnotation {
     private Stream<? extends Result> spanMentionsToResults(
             List<EventMention> eventMentions){
         EventMention defaultMention = eventMentions.get(0);
-        List<Integer> targetIndices = getIndices(defaultMention);
+        List<Integer> targetIndices = getAnnotationIndices(defaultMention);
 
         Predicate<List<Integer>> matchesTargetIndices =
                 indices -> indices.equals(targetIndices);
 
         assert eventMentions
                 .stream()
-                .map(Utils::getIndices)
+                .map(Utils::getAnnotationIndices)
                 .allMatch(matchesTargetIndices);
 
         Set<String> CUIs = eventMentions.stream()
@@ -132,6 +129,7 @@ public class LabelStudioAnnotation {
                 defaultMention.getBegin(),
                 defaultMention.getEnd(),
                 CUIs.stream().toList());
+
         ChoicesResult eventDTR = new ChoicesResult(
                 defaultMention.getBegin(),
                 defaultMention.getEnd(),

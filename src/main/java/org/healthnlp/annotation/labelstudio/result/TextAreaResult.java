@@ -5,8 +5,6 @@ import org.healthnlp.annotation.labelstudio.result.value.TextAreaValue;
 import java.util.List;
 
 public class TextAreaResult extends Result {
-    public TextAreaValue value;
-
     public TextAreaResult(int start, int end, List<String> text){
         // Maybe one day there will be a
         // more generalized way of dealing with

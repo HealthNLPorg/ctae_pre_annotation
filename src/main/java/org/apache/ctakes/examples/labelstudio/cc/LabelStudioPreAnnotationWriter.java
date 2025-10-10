@@ -12,12 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.healthnlp.annotation.labelstudio.annotation.LabelStudioAnnotation;
 import org.healthnlp.annotation.labelstudio.annotation.LabelStudioFileAnnotation;
 import org.healthnlp.annotation.labelstudio.result.Result;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.healthnlp.annotation.utils.Utils.getSaltString;
 
 // Adhering to https://labelstud.io/guide/tasks#Basic-Label-Studio-JSON-format
 @PipeBitInfo(
@@ -26,20 +27,26 @@ import org.slf4j.LoggerFactory;
         role = PipeBitInfo.Role.WRITER
 )
 final public class LabelStudioPreAnnotationWriter extends AbstractJCasFileWriter {
-    static private final Logger LOGGER = LoggerFactory.getLogger( "LabelStudioPreAnnotationWriter" );
     private final Set<String> IDs = new HashSet<>();
-    private ObjectMapper JSONSerializer = new ObjectMapper();
+    private final ObjectMapper JSONSerializer = new ObjectMapper();
 
     @Override
     public void writeFile(JCas data, String outputDir, String documentId, String fileName) throws IOException {
         LabelStudioFileAnnotation labelStudioFileAnnotation = new LabelStudioFileAnnotation(data);
         int tries = 10;
         for (LabelStudioAnnotation labelStudioAnnotation: labelStudioFileAnnotation.predictions){
-            for (Result result: labelStudioAnnotation.result){
+            Collection<List<Result>> resultClusters = labelStudioAnnotation
+                    .result
+                    .stream()
+                    .collect(Collectors.groupingBy(r -> List.of(r.value.start, r.value.end)))
+                    .values();
+            for (List<Result> results: resultClusters){
                 for (int i = 0; i < tries; i++) {
                     String attemptedId = getSaltString();
                     if (!IDs.contains(attemptedId)){
-                        result.setId(attemptedId);
+                        for (Result result: results) {
+                            result.setId(attemptedId);
+                        }
                         IDs.add(attemptedId);
                         // there's probably a better way but for now
                         break;
@@ -54,16 +61,5 @@ final public class LabelStudioPreAnnotationWriter extends AbstractJCasFileWriter
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private String getSaltString() {
-        String SALTCHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
-        StringBuilder salt = new StringBuilder();
-        Random rnd = new Random();
-        while (salt.length() < 10) { // length of the random string.
-            int index = (int) (rnd.nextFloat() * SALTCHARS.length());
-            salt.append(SALTCHARS.charAt(index));
-        }
-        return salt.toString();
     }
 }

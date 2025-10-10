@@ -1,6 +1,5 @@
 package org.healthnlp.annotation.labelstudio.result;
 
-import org.apache.ctakes.typesystem.type.textsem.EventMention;
 import org.healthnlp.annotation.labelstudio.result.value.Value;
 
 public class Result implements Comparable<Result>{
