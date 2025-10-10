@@ -3,6 +3,7 @@ package org.healthnlp.annotation.utils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.ctakes.core.resource.FileLocator;
 import org.apache.ctakes.typesystem.type.structured.DocumentPath;
+import org.apache.ctakes.typesystem.type.textsem.IdentifiedAnnotation;
 import org.apache.uima.fit.util.JCasUtil;
 import org.apache.uima.jcas.JCas;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,5 +46,9 @@ public class Utils {
             LOGGER.info( "Missing filter terms {}, Using the empty set", filterList );
             return new HashSet<>();
         }
+    }
+
+    public static List<Integer> getIndices(IdentifiedAnnotation identifiedAnnotation){
+        return List.of(identifiedAnnotation.getBegin(), identifiedAnnotation.getEnd());
     }
 }

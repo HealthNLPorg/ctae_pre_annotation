@@ -13,7 +13,7 @@ public class LabelsResult extends Result {
         this.from_name = from_name;
         this.to_name = to_name;
         this.origin = origin;
-        this.type = "choices";
+        this.type = "labels";
         this.value = new LabelsValue(start, end, text, labels);
     }
 }

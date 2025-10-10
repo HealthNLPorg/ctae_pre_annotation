@@ -34,7 +34,7 @@ final public class LabelStudioPreAnnotationWriter extends AbstractJCasFileWriter
     public void writeFile(JCas data, String outputDir, String documentId, String fileName) throws IOException {
         LabelStudioFileAnnotation labelStudioFileAnnotation = new LabelStudioFileAnnotation(data);
         int tries = 10;
-        for (LabelStudioAnnotation labelStudioAnnotation: labelStudioFileAnnotation.annotations){
+        for (LabelStudioAnnotation labelStudioAnnotation: labelStudioFileAnnotation.predictions){
             for (Result result: labelStudioAnnotation.result){
                 for (int i = 0; i < tries; i++) {
                     String attemptedId = getSaltString();
