@@ -11,9 +11,7 @@ C0018801|033|decompensated hf
 C0018801|033|compensated heart failure
 C0018801|033|compensated hf
 C0018801|033|high-output heart failure
-C0018801|033|hof
 C0018801|033|low-output heart failure
-C0018801|033|lof
 C0018801|033|right heart failure
 C0018801|033|right-sided heart failure
 C0018801|033|right hf
@@ -23,12 +21,10 @@ C0018801|033|left hf
 C0018801|033|biventricular heart failure
 C0018801|033|biventricular hf
 C0018801|033|diastolic heart failure
-C0018801|033|dhf
 C0018801|033|heart failure with preserved ejection fraction
 C0018801|033|hfpef
 C0018801|033|preserved ef heart failure
 C0018801|033|systolic heart failure
-C0018801|033|shf
 C0018801|033|heart failure with reduced ejection fraction
 C0018801|033|hfref
 C0018801|033|reduced ef heart failure
@@ -48,7 +44,6 @@ C0018801|033|amyloidosis-related hf
 C0018801|033|cardiac amyloidosis with failure
 C0018801|033|chemotherapy-induced heart failure
 C0018801|033|chemo-induced hf
-C0018801|033|ppcm
 C0018801|033|peripartum cardiomyopathy
 C0018801|033|tachycardia-induced heart failure
 C0018801|033|tachycardia-induced hf
@@ -77,7 +72,6 @@ C0018801|033|aoc heart failure
 C0018801|033|post-mi heart failure
 C0018801|033|post-infarction heart failure
 C0018801|033|cardiorenal syndrome
-C0018801|033|crs
 C0018801|033|pulmonary edema due to chf
 C0018801|033|pump failure
 C0018801|033|cardiac failure
@@ -88,7 +82,6 @@ C0018801|033|left ventricular failure
 C0018801|033|rv failure
 C0018801|033|right ventricular failure
 C0018801|033|congestive cardiac failure
-C0018801|033|ccf
 C0018801|033|preload failure
 C0018801|033|forward failure
 C0018801|033|backward failure
@@ -126,7 +119,6 @@ C0018801|033|chf exacerbation
 C0018801|033|new-onset heart failure
 C0018801|033|new hf
 C0018801|033|acute decompensated heart failure
-C0018801|033|adhf
 C0018801|033|cardiac insufficiency
 C0018801|033|chronic decompensated heart failure
 C0018801|033|acute exacerbation of chf
@@ -135,7 +127,6 @@ C0018801|033|post-viral heart failure
 C0018801|033|post-viral cardiomyopathy with failure
 C0018801|033|pericardial disease with failure
 C0018801|033|transfusion-associated circulatory overload
-C0018801|033|taco
 C0018801|033|heart failure secondary to anemia
 C0018801|033|high-output cardiac failure
 C0018801|033|myocardial failure
@@ -341,7 +332,6 @@ C0027051|033|acute plaque rupture mi
 C0027051|033|mi with thrombus
 C0002965|033|unstable angina
 C0002965|033|ua
-C0002965|033|usa
 C0002965|033|acs-ua
 C0002965|033|pre-infarction angina
 C0002965|033|crescendo angina
@@ -587,7 +577,6 @@ C0004238|033|secondary atrial fibrillation
 C0004238|033|recurrent atrial fibrillation
 C0004238|033|acute atrial fibrillation
 C0004238|033|postoperative atrial fibrillation
-C0004238|033|poaf
 C0004238|033|new-onset atrial fibrillation
 C0004238|033|lone atrial fibrillation
 C0004238|033|ischemic atrial fibrillation
@@ -635,7 +624,6 @@ C0004238|033|atrial fibrillation crisis
 C0004238|033|resistant atrial fibrillation
 C0004238|033|uncontrolled atrial fibrillation
 C0004238|033|controlled atrial fibrillation
-C0004238|033|atf
 C0004238|033|a. fib.
 C0004238|033|a/f
 C0004238|033|a-fibrillation
@@ -785,7 +773,6 @@ C0015672|033|chemo-induced fatigue
 C0015672|033|chemotherapy-related fatigue
 C0015672|033|ca fatigue
 C0015672|033|post-chemo fatigue
-C0015672|033|crf
 C0015672|033|cancer fatigue
 C0015672|033|radiation-induced fatigue
 C0015672|033|anemia-associated fatigue
@@ -1144,7 +1131,6 @@ C5543391|033|chemo-induced appetite loss
 C5543391|033|loss of appetite (chemo)
 C5543391|033|appetite change
 C5543391|033|poor po
-C5543391|033|↓ po
 C5543391|033|po poor
 C5543391|033|s/p chemo ↓ appetite
 C5543391|033|appetite poor
@@ -1314,8 +1300,6 @@ C0003123|033|diminished appetite
 C0003123|033|lack of appetite
 C0003123|033|poor po intake
 C0003123|033|anorexia-cachexia
-C0003123|033|a/n
-C0003123|033|a/nv
 C0003123|033|chf-related anorexia
 C0003123|033|ckd-related anorexia
 C0003123|033|esrd anorexia
@@ -1393,7 +1377,6 @@ C0575081|033|tabetic gait
 C0575081|033|choreiform gait
 C0575081|033|antalgic gait
 C0575081|033|limping gait
-C0575081|033|limp
 C0575081|033|walking abnormality
 C0575081|033|walking disturbance
 C0575081|033|abnl gait
@@ -1694,7 +1677,6 @@ C1405979|033|post-radiation necrosis
 C1405979|033|postirradiation necrosis
 C1405979|033|radionecrosis
 C1405979|033|radiation-related necrosis
-C1405979|033|rn
 C1405979|033|rt necrosis
 C1405979|033|radio-necrosis
 C1405979|033|irradiation necrosis
@@ -1844,7 +1826,6 @@ C1392786|033|early-onset dementia
 C1392786|033|late-onset dementia
 C1392786|033|progressive cognitive decline
 C1392786|033|vascular cognitive impairment
-C1392786|033|vci
 C1392786|033|ischemic cognitive impairment
 C1392786|033|ischemic encephalopathy
 C1392786|033|post-stroke cognitive changes
@@ -1862,9 +1843,7 @@ C1392786|033|amyloid-related cognitive impairment
 C1392786|033|alzheimer's type changes
 C1392786|033|ad-type dementia
 C1392786|033|frontotemporal cognitive impairment
-C1392786|033|ftd
 C1392786|033|lewy body cognitive dysfunction
-C1392786|033|dlb
 C1392786|033|parkinson's-related cognitive change
 C1392786|033|pd dementia
 C1392786|033|ath-related cognitive dysfunction
@@ -1876,7 +1855,6 @@ C1392786|033|hepatic encephalopathy
 C1392786|033|uremic encephalopathy
 C1392786|033|sepsis-associated encephalopathy
 C1392786|033|toxic-metabolic encephalopathy
-C1392786|033|tme
 C1392786|033|medication-related cognitive impairment
 C1392786|033|polypharmacy-induced cognitive change
 C1392786|033|sedative-induced confusion
@@ -1891,9 +1869,7 @@ C1392786|033|autoimmune encephalopathy
 C1392786|033|paraneoplastic encephalopathy
 C1392786|033|infectious encephalopathy
 C1392786|033|hiv-associated neurocognitive disorder
-C1392786|033|hand
 C1392786|033|neurocognitive disorder
-C1392786|033|ncd
 C1392786|033|mild neurocognitive disorder
 C1392786|033|major neurocognitive disorder
 C1392786|033|cns dysfunction
@@ -1921,7 +1897,6 @@ C1392786|033|encephalopathic
 C1392786|033|icu psychosis
 C1392786|033|hospital-acquired delirium
 C1392786|033|postoperative cognitive dysfunction
-C1392786|033|pocd
 C1392786|033|sundowning
 C1392786|033|pre-dementia state
 C1392786|033|prodromal dementia
@@ -1933,7 +1908,6 @@ C1392786|033|tbi cognitive deficits
 C1392786|033|concussion cognitive changes
 C1392786|033|blast injury cognitive change
 C1392786|033|chronic traumatic encephalopathy
-C1392786|033|cte
 C1392786|033|huntington's cognitive impairment
 C1392786|033|huntington's dementia
 C1392786|033|wilson's disease cognitive change
@@ -1993,7 +1967,6 @@ C0011206|033|septic encephalopathy
 C0011206|033|infectious delirium
 C0011206|033|alcohol withdrawal delirium
 C0011206|033|delirium tremens
-C0011206|033|dts
 C0011206|033|benzodiazepine withdrawal delirium
 C0011206|033|drug-induced delirium
 C0011206|033|chemo-induced delirium
@@ -2090,10 +2063,8 @@ C0011206|033|delirium of advanced age
 C0011206|033|delirium of critical illness
 C0011206|033|delirium by dsm criteria
 C0497327|033|dementia
-C0497327|033|dem
 C0497327|033|demented
 C0497327|033|major neurocognitive disorder
-C0497327|033|ncd
 C0497327|033|chronic cognitive impairment
 C0497327|033|cognitive decline
 C0497327|033|cognitive dysfunction
@@ -2105,7 +2076,6 @@ C0497327|033|senile degeneration
 C0497327|033|senile brain disease
 C0497327|033|presenile dementia
 C0497327|033|vascular dementia
-C0497327|033|vad
 C0497327|033|multi-infarct dementia
 C0497327|033|arteriosclerotic dementia
 C0497327|033|ischemic dementia
@@ -2116,10 +2086,8 @@ C0497327|033|alzheimer's dementia
 C0497327|033|alzheimer-type dementia
 C0497327|033|mixed dementia
 C0497327|033|dementia with lewy bodies
-C0497327|033|dlb
 C0497327|033|lewy body dementia
 C0497327|033|frontotemporal dementia
-C0497327|033|ftd
 C0497327|033|pick disease
 C0497327|033|pick's dementia
 C0497327|033|subcortical dementia
@@ -2128,24 +2096,18 @@ C0497327|033|huntington's dementia
 C0497327|033|hd dementia
 C0497327|033|parkinsonian dementia
 C0497327|033|parkinson's dementia
-C0497327|033|pdd
 C0497327|033|parkinsonism with dementia
 C0497327|033|alcoholic dementia
 C0497327|033|wernicke-korsakoff syndrome
-C0497327|033|wks
 C0497327|033|hiv-associated dementia
-C0497327|033|had
 C0497327|033|aids-dementia complex
-C0497327|033|adc
 C0497327|033|hiv dementia
 C0497327|033|posttraumatic dementia
 C0497327|033|traumatic dementia
 C0497327|033|tbi-related dementia
 C0497327|033|chronic traumatic encephalopathy
-C0497327|033|cte
 C0497327|033|creutzfeldt-jakob dementia
 C0497327|033|creutzfeldt-jakob disease
-C0497327|033|cjd
 C0497327|033|prion dementia
 C0497327|033|rapidly progressive dementia
 C0497327|033|amyloid dementia
@@ -2164,7 +2126,6 @@ C0497327|033|metabolic dementia
 C0497327|033|toxic dementia
 C0497327|033|chemo-induced dementia
 C0497327|033|chemotherapy-related cognitive impairment
-C0497327|033|crci
 C0497327|033|paraneoplastic dementia
 C0497327|033|hypoxic-ischemic encephalopathy with dementia
 C0497327|033|hie dementia
@@ -2178,11 +2139,9 @@ C0497327|033|syphilitic dementia
 C0497327|033|neurosyphilis with dementia
 C0497327|033|progressive paralytic dementia
 C0497327|033|progressive general paralysis of the insane
-C0497327|033|pgp
 C0497327|033|dementia praecox
 C0497327|033|madness
 C0497327|033|organic brain syndrome
-C0497327|033|obs
 C0497327|033|chronic organic brain disorder
 C0497327|033|cerebral degeneration
 C0497327|033|brain failure
@@ -2244,9 +2203,7 @@ C0497327|033|aphasic dementia
 C0497327|033|semantic dementia
 C0497327|033|logopenic dementia
 C0497327|033|primary progressive aphasia
-C0497327|033|ppa
 C0497327|033|behavioral variant ftd
-C0497327|033|bvftd
 C0497327|033|semantic variant ppa
 C0497327|033|nonfluent variant ppa
 C0497327|033|nph cognitive impairment
@@ -2557,7 +2514,6 @@ C0751295|033|amnestic syndrome
 C0751295|033|amnesia
 C0751295|033|anterograde amnesia
 C0751295|033|retrograde amnesia
-C0751295|033|tga
 C0751295|033|transient global amnesia
 C0751295|033|short-term memory loss
 C0751295|033|long-term memory loss
@@ -2574,7 +2530,6 @@ C0751295|033|mild cognitive impairment
 C0751295|033|mci
 C0751295|033|age-associated memory impairment
 C0751295|033|post-traumatic amnesia
-C0751295|033|pta
 C0751295|033|traumatic brain injury-related amnesia
 C0751295|033|tbi-associated amnesia
 C0751295|033|wernicke-korsakoff syndrome
@@ -2604,7 +2559,6 @@ C0751295|033|frontotemporal dementia with memory deficits
 C0751295|033|parkinson's dementia with memory impairment
 C0751295|033|lewy body dementia with amnesia
 C0751295|033|hiv-associated neurocognitive disorder with memory loss
-C0751295|033|ancd
 C0751295|033|ppa with memory involvement
 C0751295|033|primary progressive aphasia with memory deficit
 C0751295|033|mild amnestic changes
@@ -2736,11 +2690,9 @@ C0233794|033|ltm loss
 C0233794|033|anterograde amnesia
 C0233794|033|retrograde amnesia
 C0233794|033|transient global amnesia
-C0233794|033|tga
 C0233794|033|transient amnesia
 C0233794|033|memory deficit
 C0233794|033|cognitive impairment
-C0233794|033|ci
 C0233794|033|memory disturbance
 C0233794|033|deficit of recall
 C0233794|033|recall impairment
@@ -2749,13 +2701,11 @@ C0233794|033|retrieval deficit
 C0233794|033|executive memory dysfunction
 C0233794|033|working memory impairment
 C0233794|033|working memory deficit
-C0233794|033|wmi
 C0233794|033|impaired recall
 C0233794|033|impaired retention
 C0233794|033|dementia
 C0233794|033|early dementia
 C0233794|033|amnestic mci
-C0233794|033|amci
 C0233794|033|mci
 C0233794|033|mild cognitive impairment
 C0233794|033|vuci (vascular unrelated cognitive impairment)
@@ -2776,7 +2726,6 @@ C0233794|033|chemo brain
 C0233794|033|radiation-induced memory deficit
 C0233794|033|alcohol-related memory impairment
 C0233794|033|wernicke-korsakoff amnesia
-C0233794|033|wks
 C0233794|033|thiamine deficiency–related memory loss
 C0233794|033|alzheimer's-related memory loss
 C0233794|033|ad-associated memory loss
@@ -2803,7 +2752,6 @@ C0233794|033|depressive pseudodementia
 C0233794|033|anxiety-related memory impairment
 C0233794|033|stress-induced memory deficit
 C0233794|033|age-associated memory impairment
-C0233794|033|aami
 C0233794|033|presbycognitive change
 C0233794|033|elderly memory decline
 C0233794|033|mild memory decline
@@ -2850,7 +2798,6 @@ C0233794|033|post-infectious cognitive impairment
 C0233794|033|covid-related cognitive impairment
 C0233794|033|long covid memory issues
 C0233794|033|hiv-associated neurocognitive memory loss
-C0233794|033|hand
 C0233794|033|cjd memory loss
 C0233794|033|prion-related memory deficit
 C0233794|033|chronic memory loss
@@ -2928,7 +2875,6 @@ C0233407|033|spatial disorientation
 C0233407|033|person-place-time disorientation
 C0233407|033|aox1
 C0233407|033|aox2
-C0233407|033|aox3
 C0233407|033|not aox3
 C0233407|033|not alert and oriented
 C0233407|033|poor orientation
@@ -3059,7 +3005,6 @@ C0233407|033|not oriented to place
 C0233407|033|not oriented to self
 C0233407|033|not oriented to situation
 C0233407|033|orientation deficit
-C0233407|033|aox
 C0233407|033|impaired consciousness
 C0233407|033|poor cognition
 C0233407|033|acute altered consciousness
@@ -3270,7 +3215,6 @@ C0029227|033|icu psychosis
 C0029227|033|toxic encephalopathy
 C0029227|033|substance-induced delirium
 C0029227|033|alcohol withdrawal delirium
-C0029227|033|dts
 C0029227|033|delirium tremens
 C0029227|033|hyperactive delirium
 C0029227|033|hypoactive delirium
@@ -3279,25 +3223,19 @@ C0029227|033|dementia
 C0029227|033|major neurocognitive disorder
 C0029227|033|minor neurocognitive disorder
 C0029227|033|neurocognitive disorder nos
-C0029227|033|ncd
 C0029227|033|primary degenerative dementia
 C0029227|033|senile dementia
 C0029227|033|presenile dementia
 C0029227|033|senile cortical degeneration
 C0029227|033|multi-infarct dementia
-C0029227|033|mid
 C0029227|033|vascular dementia
-C0029227|033|vad
 C0029227|033|ischemic vascular dementia
 C0029227|033|nonischemic dementia
 C0029227|033|subcortical dementia
 C0029227|033|frontotemporal dementia
-C0029227|033|ftd
 C0029227|033|pick's disease
 C0029227|033|lewy body dementia
-C0029227|033|lbd
 C0029227|033|parkinson’s disease dementia
-C0029227|033|pdd
 C0029227|033|alzheimer’s disease
 C0029227|033|ad
 C0029227|033|alzheimers type dementia
@@ -3308,13 +3246,11 @@ C0029227|033|dementia with agitation
 C0029227|033|dementia with depression
 C0029227|033|aids dementia complex
 C0029227|033|hiv-associated dementia
-C0029227|033|hivd
 C0029227|033|chemo-induced cognitive impairment
 C0029227|033|chemotherapy-related cognitive dysfunction
 C0029227|033|chemo brain
 C0029227|033|alcohol-related dementia
 C0029227|033|wernicke-korsakoff syndrome
-C0029227|033|wks
 C0029227|033|korsakoff dementia
 C0029227|033|wernicke’s encephalopathy
 C0029227|033|normal pressure hydrocephalus
@@ -3342,9 +3278,7 @@ C0029227|033|mci
 C0029227|033|age-related cognitive decline
 C0029227|033|cognitive disorder nos
 C0029227|033|organic brain syndrome
-C0029227|033|obs
 C0029227|033|organic mental disorder
-C0029227|033|omd
 C0029227|033|cognitive dysfunction
 C0029227|033|cognitive decline
 C0029227|033|chronic confusional state
@@ -3383,11 +3317,9 @@ C0029227|033|hypoparathyroidism cognitive dysfunction
 C0029227|033|hypercalcemia cognitive impairment
 C0029227|033|postictal confusion
 C0029227|033|chronic traumatic encephalopathy
-C0029227|033|cte
 C0029227|033|ptsd-related cognitive disorder
 C0029227|033|cognitive impairment nos
 C0029227|033|transient global amnesia
-C0029227|033|tga
 C0029227|033|fahr's syndrome dementia
 C0029227|033|basal ganglia dementia
 C0029227|033|epileptic encephalopathy
@@ -3429,7 +3361,6 @@ C0029227|033|dementia nos
 C0029227|033|senile ncd
 C0029227|033|mixed ncd
 C0029227|033|age-associated memory impairment
-C0029227|033|aami
 C0029227|033|cortical dementia
 C0029227|033|subcortical cognitive disorder
 C0029227|033|ischemic encephalopathy
@@ -3830,10 +3761,6 @@ C0454643|033|mild anomic aphasia
 C0454643|033|mild word-finding deficit
 C0454643|033|moderate word-finding deficit
 C0454643|033|severe word-finding impairment
-C0454643|033|wfd
-C0454643|033|wd
-C0454643|033|wfdx
-C0454643|033|nfd
 C0454643|033|anomic type aphasia
 C0454643|033|amnestic aphasia
 C0454643|033|loc anomia
@@ -3983,7 +3910,6 @@ C0542476|033|imp rem mem
 C0542476|033|anterograde amnesia
 C0542476|033|retrograde amnesia
 C0542476|033|transient global amnesia
-C0542476|033|tga
 C0542476|033|mnestic deficit
 C0542476|033|mnemonic deficit
 C0542476|033|forgetting
@@ -4004,7 +3930,6 @@ C0542476|033|alzheimer's type memory loss
 C0542476|033|ad-type memory loss
 C0542476|033|vascular memory impairment
 C0542476|033|vascular cognitive impairment
-C0542476|033|vci
 C0542476|033|post-stroke memory loss
 C0542476|033|stroke-related memory loss
 C0542476|033|ischemic memory loss
@@ -4017,7 +3942,6 @@ C0542476|033|delirium
 C0542476|033|encephalopathic
 C0542476|033|encephalopathy-related memory loss
 C0542476|033|hiv-associated neurocognitive disorder
-C0542476|033|hand
 C0542476|033|metabolic memory impairment
 C0542476|033|hepatic encephalopathy memory loss
 C0542476|033|alcohol-related memory loss
