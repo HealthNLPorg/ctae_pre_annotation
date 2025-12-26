@@ -66,6 +66,45 @@ def build_file_id_to_file_text(notes_dir: str) -> Mapping[int, str]:
     }
 
 
+def build_label_studio_label(
+    origin: str,
+    annotation_id: str,
+    start: int,
+    end: int,
+    label_space: str,
+    labels: list[str],
+) -> dict:
+    return {
+        "value": {"start": start, "end": end, "text": None, "labels": labels},
+        "id": annotation_id,
+        "from_name": label_space,
+        "to_name": "text",
+        "origin": origin,
+    }
+
+
+def build_label_studio_relation(
+    source_id: str, target_id: str, labels: list[str]
+) -> dict:
+    return {
+        "from_id": source_id,
+        "to_id": target_id,
+        "type": "relation",
+        "direction": "right",
+        "labels": labels,
+    }
+
+
+def row_dict_to_ls_annotations(row_dict: dict[str, str]) -> list[dict]:
+    fixed_row_dict = {
+        column.strip(): parse_offset_str(cell)
+        for column, cell in row_dict.items()
+        if cell != "None" and parse_offset_str(cell) is not None
+    }
+    NotImplementedError("Finish")
+    return []
+
+
 def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
     # Remove straggler rows where all cells are null
     rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
