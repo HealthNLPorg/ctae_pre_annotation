@@ -1,15 +1,23 @@
 import argparse
-from functools import partial, lru_cache
+import json
+import os
+from typing import Mapping
+from functools import lru_cache
 import polars as pl
 
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument(
-    "--sig_offsets_dir",
+    "--tables_dir",
     type=str,
     help="Where the cTAKES output is",
 )
 
+parser.add_argument(
+    "--notes_dir",
+    type=str,
+    help="Where the cTAKES output is",
+)
 parser.add_argument(
     "--character_offset_map_table",
     type=str,
@@ -21,8 +29,47 @@ parser.add_argument(
     help="Where to write the full aggregated JSON",
 )
 
+COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
+    "central_dose": "Radiotherapy Treatment",
+    "boost": "Boost",
+    "date": "Date",
+    "secondary_dose": "Secondary Dose",
+    "fraction_frequency": "Fraction Frequency",
+    "fraction_number": "Fraction Number",
+    "site": "Site",
+}
+
+
+def build_file_id_to_file_preannotation(tables_dir: str) -> Mapping[int, dict]:
+    def __file_id(fn: str) -> int:
+        return int(fn.split("_")[0])
+
+    return {
+        __file_id(table_fn): ctakes_csv_to_ls_file_annotation(
+            os.path.join(tables_dir, table_fn)
+        )
+        for table_fn in os.listdir(tables_dir)
+    }
+
+
+def build_file_id_to_file_text(notes_dir: str) -> Mapping[int, str]:
+    def __file_id(fn: str) -> int:
+        return int(fn.split(".")[0])
+
+    def __load(notes_dir: str, note_fn: str) -> str:
+        with open(os.path.join(notes_dir, note_fn), mode="r") as f:
+            return f.read()
+
+    return {
+        __file_id(note_fn): __load(notes_dir, note_fn)
+        for note_fn in os.listdir(notes_dir)
+    }
+
 
 def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
+    # Remove straggler rows where all cells are null
+    rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
+    NotImplementedError("Parse table")
     return {}
 
 
@@ -83,16 +130,59 @@ def get_report_id_to_offset_map(
     }
 
 
-def aggregate_and_align(
-    sig_offsets_dir: str, character_offset_map_table: str, output_dir: str
+def coordinate_to_label_studio_dict(file_preannotation: dict, file_text: str) -> dict:
+    NotImplementedError("Turn into an actual Label Studio dictionary")
+    return {}
+
+
+def build_jsonl(
+    file_id_to_file_text: Mapping[int, str],
+    file_id_to_file_preannotation: Mapping[int, dict],
+) -> list[dict]:
+    def __assemble(file_id: int) -> dict | None:
+        file_text = file_id_to_file_text.get(file_id)
+        if file_text is None:
+            ValueError(f"Missing file with ID: {file_id}")
+            return None
+
+        file_preannotation = file_id_to_file_preannotation.get(file_id)
+        if file_preannotation is None:
+            ValueError(f"Missing file table with ID: {file_id}")
+            return None
+        return coordinate_to_label_studio_dict(file_preannotation, file_text)
+
+    # So ty doesn't complain
+    return list(
+        filter(
+            None,
+            map(
+                __assemble,
+                sorted(
+                    file_id_to_file_text.keys() | file_id_to_file_preannotation.keys()
+                ),
+            ),
+        )
+    )
+
+
+def build_and_write_jsonl(
+    tables_dir: str, notes_dir: str, character_offset_map_table: str, output_dir: str
 ) -> None:
-    pass
+    file_id_to_file_text = build_file_id_to_file_text(notes_dir)
+    file_id_to_file_preannotation = build_file_id_to_file_preannotation(tables_dir)
+    with open(os.path.join(output_dir, "label_studio_corpus.json"), mode="w") as f:
+        f.write(
+            json.dumps(build_jsonl(file_id_to_file_text, file_id_to_file_preannotation))
+        )
 
 
 def main() -> None:
     args = parser.parse_args()
-    aggregate_and_align(
-        args.sig_offsets_dir, args.character_offset_map_table, args.output_dir
+    build_and_write_jsonl(
+        args.tables_dir,
+        args.notes_dir,
+        args.character_offset_map_table,
+        args.output_dir,
     )
 
 
