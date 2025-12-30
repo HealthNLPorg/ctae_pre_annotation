@@ -1,5 +1,5 @@
 import argparse
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 import os
 import json
 
@@ -44,10 +44,14 @@ def check_compatibility(annotation_schema: str, loaded_corpus: list[dict]) -> bo
     return True
 
 
+def build_entity_id_to_entity_map(entities: list[dict]) -> Mapping[str, dict]:
+    return {entity["id"]: entity for entity in entities}
+
+
 def align_annotated_files(
-    file_annotations_with_update: dict,
-    file_annotations_to_update: dict,
-    merge_key: str = "annotations",  # eventually want to do "predictions"/pre-annotations as well
+    file_annotation_with_update: dict,
+    file_annotation_to_update: dict,
+    merge_body: str = "predictions",  # eventually want to do "annotations"/manual annotations as well
 ) -> dict:
     return {}
 
