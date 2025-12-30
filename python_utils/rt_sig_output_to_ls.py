@@ -105,16 +105,15 @@ def row_dict_to_ls_annotations(row_dict: dict[str, str]) -> list[dict]:
     return []
 
 
-def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
-    # Remove straggler rows where all cells are null
-    rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
-    NotImplementedError("Parse table")
-    return {}
-
-
+# of the form
+# <ascii begin>_<original begin>,...,<ascii begin>_<original begin>
 def get_offset_map_from_string(offset_map_string: str) -> dict[int, int]:
-    NotImplementedError("Just a second")
-    return {}
+    return {
+        ascii_offset: original_offset
+        for ascii_offset, original_offset in filter(
+            None, map(parse_offset_str, offset_map_string.split(","))
+        )
+    }
 
 
 @lru_cache
@@ -153,12 +152,14 @@ def adjust_indices(
     for signature, offset_str in signature_row_dict.items():
         offsets = parse_and_adjust(offset_str)
         if offsets is not None:
-            final[signature] = offsets
+            final[signature.strip()] = offsets
     return final
 
 
 def get_report_id_to_offset_map(
-    character_offset_map_table: str, report_id_col_key: str, offset_map_col_key: str
+    character_offset_map_table: str,
+    report_id_col_key: str = "FIXME",
+    offset_map_col_key: str = "FIXME",
 ) -> dict[int, dict[int, int]]:
     df = pl.read_csv(character_offset_map_table, separator="\t")
     return {
