@@ -40,6 +40,13 @@ COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
 }
 
 
+def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
+    # Remove straggler rows where all cells are null
+    rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
+    NotImplementedError("Parse table")
+    return {}
+
+
 def build_file_id_to_file_preannotation(tables_dir: str) -> Mapping[int, dict]:
     def __file_id(fn: str) -> int:
         return int(fn.split("_")[0])
