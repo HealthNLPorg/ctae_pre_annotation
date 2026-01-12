@@ -2,6 +2,8 @@ import logging
 import json
 import argparse
 import pathlib
+import unicodedata
+import string
 from functools import lru_cache
 import os
 
@@ -26,6 +28,22 @@ logging.basicConfig(
     level=logging.INFO,
 )
 note_dict = dict[str, str | int]
+
+
+@lru_cache
+def relevant_unicode_category(category: str) -> bool:
+    return category != "So" and not category.startswith("C")
+
+
+@lru_cache
+def relevant_character(char: str) -> bool:
+    return char in string.printable or relevant_unicode_category(
+        unicodedata.category(char)
+    )
+
+
+def remove_irrelevant_characters(raw_str: str) -> str:
+    return "".join(filter(relevant_character, raw_str))
 
 
 def debug_restriction(_note_dict: note_dict) -> note_dict:
