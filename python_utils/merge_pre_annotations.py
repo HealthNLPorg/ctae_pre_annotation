@@ -77,7 +77,7 @@ def id_based_aggregate_and_align(
                     corpus_with_update[file_id], corpus_to_update[file_id]
                 )
             case _:
-                ValueError(
+                raise ValueError(
                     f"{file_id} missing from both original and updated, this shouldn't be possible"
                 )
 
@@ -115,7 +115,7 @@ def process_and_write(
         check_compatibility(annotation_schema, corpus_with_update)
         and check_compatibility(annotation_schema, corpus_to_update)
     ):
-        ValueError("Schema compatibility issue")
+        raise ValueError("Schema compatibility issue")
     updated_corpus = aggregate_and_align(
         corpus_with_update,
         corpus_to_update,
