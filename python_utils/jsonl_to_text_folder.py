@@ -53,7 +53,7 @@ def get_ctakes_file_info(json_line: str) -> tuple[str, str]:
     _note_dict = json.loads(json_line)
     raw_ctakes_fn = _note_dict.get("id")
     if raw_ctakes_fn is None:
-        ValueError(
+        raise ValueError(
             f"id not found for note (with other info):\n{debug_restriction(_note_dict)}"
         )
         ctakes_fn = "MISSING_ID"
@@ -64,7 +64,7 @@ def get_ctakes_file_info(json_line: str) -> tuple[str, str]:
     raw_rpt_text_no_html = _note_dict.get("RPT_TEXT_NO_HTML")
     match raw_rpt_text, raw_rpt_text_no_html:
         case None, None:
-            ValueError(
+            raise ValueError(
                 f"No report text for either RPT_TEXT or RPT_TEXT_NO_HTML found in note {ctakes_fn} :\n{debug_restriction(_note_dict)}"
             )
             rpt_text = ""
@@ -76,7 +76,7 @@ def get_ctakes_file_info(json_line: str) -> tuple[str, str]:
             # For now just in case
             rpt_text = raw_rpt_text_no_html
         case _:
-            ValueError(
+            raise ValueError(
                 f"Report text issues for both RPT_TEXT: {raw_rpt_text}\nand RPT_TEXT_NO_HTML: {raw_rpt_text_no_html}\n found in note {ctakes_fn} :\n{debug_restriction(_note_dict)}"
             )
             rpt_text = ""

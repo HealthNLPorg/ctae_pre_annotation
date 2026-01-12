@@ -1,3 +1,5 @@
+from itertools import chain
+from collections.abc import Iterable
 import argparse
 import json
 import os
@@ -43,7 +45,7 @@ COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
 def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
     # Remove straggler rows where all cells are null
     rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
-    NotImplementedError("Parse table")
+    raise NotImplementedError("Parse table")
     return {}
 
 
@@ -102,14 +104,85 @@ def build_label_studio_relation(
     }
 
 
-def row_dict_to_ls_annotations(row_dict: dict[str, str]) -> list[dict]:
-    fixed_row_dict = {
-        column.strip(): parse_offset_str(cell)
-        for column, cell in row_dict.items()
-        if cell != "None" and parse_offset_str(cell) is not None
+def entities_to_relation(
+    from_id: str,
+    to_id: str,
+    direction: str = "right",
+    labels: list[str] = ["Signature"],
+) -> dict:
+    return {
+        "from_id": from_id,
+        "to_id": to_id,
+        "type": "relation",
+        "direction": direction,
+        "labels": labels,
     }
-    NotImplementedError("Finish")
-    return []
+
+
+def rt_cell_to_ls_entity(
+    column_name: str,
+    start: int,
+    end: int,
+    ls_id: str,
+    text: str | None = None,
+    from_name: str = "RadiotherapySignature",
+    to_name: str = "text",
+    entity_type: str = "labels",
+    origin: str = "prediction",
+    column_mapping: Mapping[str, str] = COLUMN_SIGNATURE_TO_LS_SIGNATURE,
+) -> dict:
+    return {
+        "value": {
+            "start": start,
+            "end": end,
+            "text": text,
+            entity_type: [column_mapping[column_name]],
+        },
+        "id": ls_id,
+        "from_name": from_name,
+        "to_name": to_name,
+        "type": entity_type,
+        "origin": origin,
+    }
+
+
+def row_dict_to_ls_annotations(
+    row_dict: dict[str, str],
+    file_index: int,
+    row_index: int,
+    anchor_column: str = "central_dose",
+) -> Iterable[dict]:
+    current = 0
+    fixed_row_dict = {}
+    for column, cell in row_dict.items():
+        if cell != "None" and parse_offset_str(cell) is not None:
+            fixed_row_dict[column.strip()] = parse_offset_str(cell)
+
+    def build_id(annotation_index) -> str:
+        return f"{file_index}_{row_index}_{annotation_index}"
+
+    def build_rt_entity(column_name: str, entity_id: str) -> dict:
+        return rt_cell_to_ls_entity(
+            column_name,
+            fixed_row_dict[column_name][0],
+            fixed_row_dict[column_name][1],
+            entity_id,
+        )
+
+    anchor_id = build_id(current)
+    anchor_entity = build_rt_entity(anchor_column, anchor_id)
+    current += 1
+    id_to_signature = {}
+    for signature_column in fixed_row_dict.keys() - {anchor_column}:
+        signature_id = build_id(current)
+        id_to_signature[signature_id] = build_rt_entity(signature_column, signature_id)
+        current += 1
+    dtr_entity = build_dtr_entity(dtr_column, anchor_id)
+    relations = (
+        entities_to_relation(from_id=anchor_id, to_id=signature_id)
+        for signature_id in id_to_signature.keys()
+    )
+    return chain((anchor_entity, dtr_entity), id_to_signature.values(), relations)
 
 
 # of the form
@@ -127,7 +200,7 @@ def get_offset_map_from_string(offset_map_string: str) -> dict[int, int]:
 def parse_offset_str(offset_str: str) -> tuple[int, int] | None:
     elements = offset_str.split("_")
     if len(elements) != 2 or not all(map(str.isnumeric, elements)):
-        ValueError(f"Problematic offset string {offset_str}")
+        raise ValueError(f"Problematic offset string {offset_str}")
         return None
     begin, end = elements
     return int(begin), int(end)
@@ -141,7 +214,7 @@ def adjust_indices(
     def parse_and_adjust(offset_str: str) -> tuple[int, int] | None:
         result = parse_offset_str(offset_str)
         if result is None:
-            ValueError(
+            raise ValueError(
                 f"Report ID: {report_id} - could not parse offset string {offset_str}"
             )
             return None
@@ -149,7 +222,7 @@ def adjust_indices(
         original_begin = character_offset_map.get(ascii_begin)
         original_end = character_offset_map.get(ascii_end)
         if original_begin is None or original_end is None:
-            ValueError(
+            raise ValueError(
                 f"Report ID: {report_id} - ASCII begin {ascii_begin} obtained {original_begin}, ASCII end {ascii_end} obtained {original_end}"
             )
             return None
@@ -178,7 +251,7 @@ def get_report_id_to_offset_map(
 
 
 def coordinate_to_label_studio_dict(file_preannotation: dict, file_text: str) -> dict:
-    NotImplementedError("Turn into an actual Label Studio dictionary")
+    raise NotImplementedError("Turn into an actual Label Studio dictionary")
     return {}
 
 
@@ -189,12 +262,12 @@ def build_jsonl(
     def __assemble(file_id: int) -> dict | None:
         file_text = file_id_to_file_text.get(file_id)
         if file_text is None:
-            ValueError(f"Missing file with ID: {file_id}")
+            raise ValueError(f"Missing file with ID: {file_id}")
             return None
 
         file_preannotation = file_id_to_file_preannotation.get(file_id)
         if file_preannotation is None:
-            ValueError(f"Missing file table with ID: {file_id}")
+            raise ValueError(f"Missing file table with ID: {file_id}")
             return None
         return coordinate_to_label_studio_dict(file_preannotation, file_text)
 
