@@ -118,6 +118,7 @@ def entities_to_relation(
         "labels": labels,
     }
 
+def build_dtr_entity()
 
 def rt_cell_to_ls_entity(
     column_name: str,

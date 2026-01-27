@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.ctakes.core.cc.AbstractJCasFileWriter;
 import org.apache.ctakes.core.pipeline.PipeBitInfo;
+import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.jcas.JCas;
 
 import java.io.*;
@@ -29,6 +30,7 @@ import static org.healthnlp.annotation.utils.Utils.getSaltString;
 final public class LabelStudioPreAnnotationWriter extends AbstractJCasFileWriter {
     private final Set<String> IDs = new HashSet<>();
     private final ObjectMapper JSONSerializer = new ObjectMapper();
+    private long totalFilesWithAnnotation = 0;
 
     @Override
     public void writeFile(JCas data, String outputDir, String documentId, String fileName) throws IOException {
@@ -40,6 +42,7 @@ final public class LabelStudioPreAnnotationWriter extends AbstractJCasFileWriter
                     .stream()
                     .collect(Collectors.groupingBy(r -> List.of(r.value.start, r.value.end)))
                     .values();
+            if (!resultClusters.isEmpty()) this.totalFilesWithAnnotation += 1;
             for (List<Result> results: resultClusters){
                 for (int i = 0; i < tries; i++) {
                     String attemptedId = getSaltString();
@@ -61,5 +64,11 @@ final public class LabelStudioPreAnnotationWriter extends AbstractJCasFileWriter
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void collectionProcessComplete() throws AnalysisEngineProcessException {
+        super.collectionProcessComplete();
+        System.out.printf("Total files with annotation: %d%n", this.totalFilesWithAnnotation);
     }
 }
