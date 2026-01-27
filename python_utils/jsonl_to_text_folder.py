@@ -98,7 +98,7 @@ def get_ctakes_file_info(json_line: str) -> tuple[str, str]:
                 f"Report text issues for both RPT_TEXT: {raw_rpt_text}\nand RPT_TEXT_NO_HTML: {raw_rpt_text_no_html}\n found in note {ctakes_fn} :\n{debug_restriction(_note_dict)}"
             )
             rpt_text = ""
-    return ctakes_fn, rpt_text
+    return ctakes_fn, remove_irrelevant_characters(rpt_text)
 
 
 def migrate_note(json_line: str, output_dir: str) -> None:
