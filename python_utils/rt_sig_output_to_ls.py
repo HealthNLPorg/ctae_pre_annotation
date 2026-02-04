@@ -1,10 +1,9 @@
 from itertools import chain
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 import argparse
 import json
 import os
-from typing import Mapping
-from functools import lru_cache
+from functools import cache
 import polars as pl
 
 parser = argparse.ArgumentParser(description="")
@@ -31,7 +30,7 @@ parser.add_argument(
     help="Where to write the full aggregated JSON",
 )
 
-COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
+RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
     "central_dose": "Radiotherapy Treatment",
     "boost": "Boost",
     "date": "Date",
@@ -46,7 +45,6 @@ def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
     # Remove straggler rows where all cells are null
     rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
     raise NotImplementedError("Parse table")
-    return {}
 
 
 def build_file_id_to_file_preannotation(tables_dir: str) -> Mapping[int, dict]:
@@ -118,9 +116,71 @@ def entities_to_relation(
         "labels": labels,
     }
 
-def build_dtr_entity()
+
+def dtr_cell_to_ls_entity(
+    start: int,
+    end: int,
+    text: str | None,
+    dtr_labels: list[str],
+    ls_id: str,
+    origin: str,
+) -> dict:
+    return cell_to_ls_entity(
+        start=start,
+        end=end,
+        text=text,
+        entity_type="choices",
+        entity_labels=dtr_labels,
+        ls_id=ls_id,
+        from_name="DocTimeRel",
+        to_name="text",
+        origin=origin,
+    )
+
 
 def rt_cell_to_ls_entity(
+    start: int, end: int, text: str | None, rt_column_name: str, ls_id: str, origin: str
+) -> dict:
+    return cell_to_ls_entity(
+        start=start,
+        end=end,
+        text=text,
+        entity_type="labels",
+        entity_labels=[RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE[rt_column_name]],
+        ls_id=ls_id,
+        from_name="RadiotherapySignature",
+        to_name="text",
+        origin=origin,
+    )
+
+
+def cell_to_ls_entity(
+    start: int,
+    end: int,
+    text: str | None,
+    entity_type: str,
+    entity_labels: list[str],
+    ls_id: str,
+    from_name: str,
+    to_name: str,
+    origin: str,
+) -> dict:
+    return {
+        "value": {
+            "start": start,
+            "end": end,
+            "text": text,
+            entity_type: entity_labels,
+        },
+        "id": ls_id,
+        "from_name": from_name,
+        "to_name": to_name,
+        "type": entity_type,
+        "origin": origin,
+    }
+
+
+def old_rt_cell_to_ls_entity(
     column_name: str,
     start: int,
     end: int,
@@ -130,7 +190,7 @@ def rt_cell_to_ls_entity(
     to_name: str = "text",
     entity_type: str = "labels",
     origin: str = "prediction",
-    column_mapping: Mapping[str, str] = COLUMN_SIGNATURE_TO_LS_SIGNATURE,
+    column_mapping: Mapping[str, str] = RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE,
 ) -> dict:
     return {
         "value": {
@@ -148,42 +208,59 @@ def rt_cell_to_ls_entity(
 
 
 def row_dict_to_ls_annotations(
-    row_dict: dict[str, str],
+    row_dict: Mapping[str, str],
     file_index: int,
     row_index: int,
     anchor_column: str = "central_dose",
 ) -> Iterable[dict]:
     current = 0
     fixed_row_dict = {}
-    for column, cell in row_dict.items():
-        if cell != "None" and parse_offset_str(cell) is not None:
-            fixed_row_dict[column.strip()] = parse_offset_str(cell)
+    for raw_column, raw_cell in row_dict.items():
+        column = raw_column.strip()
+        if raw_cell != "None":
+            if column == "dtr":
+                fixed_row_dict[column] = [raw_cell]
+            else:
+                offsets = parse_offset_str(raw_cell)
+                fixed_row_dict[column] = offsets
 
     def build_id(annotation_index) -> str:
         return f"{file_index}_{row_index}_{annotation_index}"
 
-    def build_rt_entity(column_name: str, entity_id: str) -> dict:
+    def build_ls_entity(
+        column_name: str, ls_id: str, origin: str = "prediction"
+    ) -> dict:
+        if column_name == "dtr":
+            return dtr_cell_to_ls_entity(
+                start=fixed_row_dict[anchor_column][0],
+                end=fixed_row_dict[anchor_column][1],
+                text=None,  # TODO - maybe file text
+                dtr_labels=fixed_row_dict[column_name],
+                ls_id=ls_id,
+                origin=origin,
+            )
         return rt_cell_to_ls_entity(
-            column_name,
-            fixed_row_dict[column_name][0],
-            fixed_row_dict[column_name][1],
-            entity_id,
+            start=fixed_row_dict[column_name][0],
+            end=fixed_row_dict[column_name][0],
+            text=None,
+            rt_column_name=column_name,
+            ls_id=ls_id,
+            origin=origin,
         )
 
     anchor_id = build_id(current)
-    anchor_entity = build_rt_entity(anchor_column, anchor_id)
+    anchor_entity = build_ls_entity(anchor_column, anchor_id)
     current += 1
     id_to_signature = {}
     for signature_column in fixed_row_dict.keys() - {anchor_column}:
         signature_id = build_id(current)
-        id_to_signature[signature_id] = build_rt_entity(signature_column, signature_id)
+        id_to_signature[signature_id] = build_ls_entity(signature_column, signature_id)
         current += 1
-    dtr_entity = build_dtr_entity(dtr_column, anchor_id)
     relations = (
         entities_to_relation(from_id=anchor_id, to_id=signature_id)
         for signature_id in id_to_signature.keys()
     )
-    return chain((anchor_entity, dtr_entity), id_to_signature.values(), relations)
+    return chain((anchor_entity,), id_to_signature.values(), relations)
 
 
 # of the form
@@ -197,12 +274,11 @@ def get_offset_map_from_string(offset_map_string: str) -> dict[int, int]:
     }
 
 
-@lru_cache
+@cache
 def parse_offset_str(offset_str: str) -> tuple[int, int] | None:
     elements = offset_str.split("_")
     if len(elements) != 2 or not all(map(str.isnumeric, elements)):
         raise ValueError(f"Problematic offset string {offset_str}")
-        return None
     begin, end = elements
     return int(begin), int(end)
 
@@ -218,7 +294,6 @@ def adjust_indices(
             raise ValueError(
                 f"Report ID: {report_id} - could not parse offset string {offset_str}"
             )
-            return None
         ascii_begin, ascii_end = result
         original_begin = character_offset_map.get(ascii_begin)
         original_end = character_offset_map.get(ascii_end)
@@ -226,7 +301,6 @@ def adjust_indices(
             raise ValueError(
                 f"Report ID: {report_id} - ASCII begin {ascii_begin} obtained {original_begin}, ASCII end {ascii_end} obtained {original_end}"
             )
-            return None
         return original_begin, original_end
 
     final = {}
@@ -253,7 +327,6 @@ def get_report_id_to_offset_map(
 
 def coordinate_to_label_studio_dict(file_preannotation: dict, file_text: str) -> dict:
     raise NotImplementedError("Turn into an actual Label Studio dictionary")
-    return {}
 
 
 def build_jsonl(
@@ -264,12 +337,10 @@ def build_jsonl(
         file_text = file_id_to_file_text.get(file_id)
         if file_text is None:
             raise ValueError(f"Missing file with ID: {file_id}")
-            return None
 
         file_preannotation = file_id_to_file_preannotation.get(file_id)
         if file_preannotation is None:
             raise ValueError(f"Missing file table with ID: {file_id}")
-            return None
         return coordinate_to_label_studio_dict(file_preannotation, file_text)
 
     # So ty doesn't complain
