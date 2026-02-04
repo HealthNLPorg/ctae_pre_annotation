@@ -1,3 +1,4 @@
+from enum import Enum
 from itertools import chain
 from collections.abc import Iterable, Mapping
 import argparse
@@ -41,21 +42,55 @@ RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
 }
 
 
-def ctakes_csv_to_ls_file_annotation(csv_path: str) -> dict:
+class AnnotationStage(Enum):
+    predictions = "predictions"
+    annotations = "annotations"
+
+
+def ctakes_csv_to_ls_file_annotation(
+    csv_path: str,
+    file_index: int,
+    total_files: int,
+    file_text: str,
+    annotation_state: Enum,
+) -> dict:
     # Remove straggler rows where all cells are null
     rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
-    raise NotImplementedError("Parse table")
+    return {
+        "id": file_index,
+        "data": {"text": file_text},
+        annotation_state.value: {
+            "id": file_index + total_files,
+            "result": list(
+                chain.from_iterable(
+                    row_dict_to_ls_annotations(
+                        row_dict=row_dict, file_index=file_index, row_index=row_index
+                    )
+                    for row_index, row_dict in enumerate(rt_frame.to_dicts())
+                )
+            ),
+        },
+    }
 
 
-def build_file_id_to_file_preannotation(tables_dir: str) -> Mapping[int, dict]:
+def build_file_id_to_file_preannotation(
+    tables_dir: str, file_id_to_file_text: Mapping[int, str]
+) -> Mapping[int, dict]:
     def __file_id(fn: str) -> int:
         return int(fn.split("_")[0])
 
+    table_files = os.listdir(tables_dir)
     return {
         __file_id(table_fn): ctakes_csv_to_ls_file_annotation(
-            os.path.join(tables_dir, table_fn)
+            csv_path=os.path.join(tables_dir, table_fn),
+            file_index=file_index,
+            total_files=len(table_files),
+            file_text=file_id_to_file_text.get(
+                __file_id(table_fn), "MISSING_FILE_TEXT"
+            ),
+            annotation_state=AnnotationStage.predictions,
         )
-        for table_fn in os.listdir(tables_dir)
+        for file_index, table_fn in enumerate(table_files)
     }
 
 
@@ -325,47 +360,15 @@ def get_report_id_to_offset_map(
     }
 
 
-def coordinate_to_label_studio_dict(file_preannotation: dict, file_text: str) -> dict:
-    raise NotImplementedError("Turn into an actual Label Studio dictionary")
-
-
-def build_jsonl(
-    file_id_to_file_text: Mapping[int, str],
-    file_id_to_file_preannotation: Mapping[int, dict],
-) -> list[dict]:
-    def __assemble(file_id: int) -> dict | None:
-        file_text = file_id_to_file_text.get(file_id)
-        if file_text is None:
-            raise ValueError(f"Missing file with ID: {file_id}")
-
-        file_preannotation = file_id_to_file_preannotation.get(file_id)
-        if file_preannotation is None:
-            raise ValueError(f"Missing file table with ID: {file_id}")
-        return coordinate_to_label_studio_dict(file_preannotation, file_text)
-
-    # So ty doesn't complain
-    return list(
-        filter(
-            None,
-            map(
-                __assemble,
-                sorted(
-                    file_id_to_file_text.keys() | file_id_to_file_preannotation.keys()
-                ),
-            ),
-        )
-    )
-
-
 def build_and_write_jsonl(
     tables_dir: str, notes_dir: str, character_offset_map_table: str, output_dir: str
 ) -> None:
     file_id_to_file_text = build_file_id_to_file_text(notes_dir)
-    file_id_to_file_preannotation = build_file_id_to_file_preannotation(tables_dir)
+    file_id_to_file_preannotation = build_file_id_to_file_preannotation(
+        tables_dir=tables_dir, file_id_to_file_text=file_id_to_file_text
+    )
     with open(os.path.join(output_dir, "label_studio_corpus.json"), mode="w") as f:
-        f.write(
-            json.dumps(build_jsonl(file_id_to_file_text, file_id_to_file_preannotation))
-        )
+        f.write(json.dumps(list(file_id_to_file_preannotation.values())))
 
 
 def main() -> None:
