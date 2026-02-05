@@ -1,5 +1,5 @@
 import argparse
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence, Collection
 import os
 import json
 
@@ -15,7 +15,7 @@ logging.basicConfig(
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument(
-    "--annotation_schema",
+    "--annotation_schema_path",
     type=str,
     help="XML Label Studio schema (unused for now but ideally want to enforce compatibility at some point)",
 )
@@ -37,7 +37,8 @@ parser.add_argument(
 )
 
 
-def check_compatibility(annotation_schema: str, loaded_corpus: list[dict]) -> bool:
+# TODO - contrive an actual implementation
+def check_compatibility(annotation_schema_path: str, loaded_corpus: list[dict]) -> bool:
     logger.warning(
         "Compatibility check not enforced - calling it for developer awareness"
     )
@@ -48,17 +49,38 @@ def build_entity_id_to_entity_map(entities: list[dict]) -> Mapping[str, dict]:
     return {entity["id"]: entity for entity in entities}
 
 
+def align_results(
+    results_with_updates: Collection[dict],
+    results_to_updates: Collection[dict],
+) -> Sequence[dict]:
+    return []
+
+
 def align_annotated_files(
     file_annotation_with_update: dict,
     file_annotation_to_update: dict,
     merge_body: str = "predictions",  # eventually want to do "annotations"/manual annotations as well
 ) -> dict:
-    return {}
+    results_with_updates = file_annotation_with_update.get(merge_body)
+    results_to_updates = file_annotation_to_update.get(merge_body)
+    if results_with_updates is None or results_to_updates is None:
+        raise ValueError(
+            f"At least one of the files in question is missing annotations/pre-annotations field: {merge_body}"
+        )
+    assert (
+        file_annotation_with_update["id"] == file_annotation_to_update["id"]
+        and file_annotation_with_update["data"] == file_annotation_to_update["data"]
+    )
+    return {
+        "id": file_annotation_with_update["id"],
+        "data": file_annotation_with_update["data"],
+        merge_body: align_results(results_with_updates, results_to_updates),
+    }
 
 
 def id_based_aggregate_and_align(
-    corpus_with_update: dict[int, dict],
-    corpus_to_update: dict[int, dict],
+    corpus_with_update: Mapping[int, dict],
+    corpus_to_update: Mapping[int, dict],
 ) -> Iterable[dict]:
     for file_id in corpus_with_update.keys() | corpus_to_update.keys():
         match file_id in corpus_with_update, file_id in corpus_to_update:
@@ -77,19 +99,17 @@ def id_based_aggregate_and_align(
                     corpus_with_update[file_id], corpus_to_update[file_id]
                 )
             case _:
-                raise ValueError(
-                    f"{file_id} missing from both original and updated, this shouldn't be possible"
-                )
+                raise ValueError(f"{file_id} missing from both original and updated")
 
 
-def id_to_file_annotations(corpus: list[dict]) -> dict[int, dict]:
+def id_to_file_annotations(corpus: Iterable[dict]) -> Mapping[int, dict]:
     return {file_annotation["id"]: file_annotation for file_annotation in corpus}
 
 
 def aggregate_and_align(
-    corpus_with_update: list[dict],
-    corpus_to_update: list[dict],
-) -> list[dict]:
+    corpus_with_update: Sequence[dict],
+    corpus_to_update: Sequence[dict],
+) -> Sequence[dict]:
     return list(
         id_based_aggregate_and_align(
             id_to_file_annotations(corpus_with_update),
@@ -104,7 +124,7 @@ def load_json_corpus(json_corpus: str) -> list[dict]:
 
 
 def process_and_write(
-    annotation_schema: str,
+    annotation_schema_path: str,
     json_corpus_with_update: str,
     json_corpus_to_update: str,
     output_dir: str,
@@ -112,8 +132,8 @@ def process_and_write(
     corpus_with_update = load_json_corpus(json_corpus_with_update)
     corpus_to_update = load_json_corpus(json_corpus_to_update)
     if not (
-        check_compatibility(annotation_schema, corpus_with_update)
-        and check_compatibility(annotation_schema, corpus_to_update)
+        check_compatibility(annotation_schema_path, corpus_with_update)
+        and check_compatibility(annotation_schema_path, corpus_to_update)
     ):
         raise ValueError("Schema compatibility issue")
     updated_corpus = aggregate_and_align(
@@ -127,7 +147,7 @@ def process_and_write(
 def main() -> None:
     args = parser.parse_args()
     process_and_write(
-        args.annotation_schema,
+        args.annotation_schema_path,
         args.json_corpus_with_update,
         args.json_corpus_to_update,
         args.output_dir,
