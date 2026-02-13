@@ -1,3 +1,5 @@
+from operator import itemgetter
+from dataclasses import dataclass, field
 import argparse
 from collections.abc import Iterable, Mapping, Sequence, Collection
 import os
@@ -36,24 +38,108 @@ parser.add_argument(
     help="Where to write the full aggregated JSON",
 )
 
+Offsets = tuple[int, int]
+
+
+@dataclass
+class SignatureCluster:
+    central_dose: dict
+    signatures: Collection[dict] = field(default=set())
+    relations: Collection[dict] = field(default=set())
+
+    def __post_init__(self):
+        if len(self.relations) != len(self.signatures):
+            raise ValueError(
+                f"Have {len(self.relations)} relations and {len(self.signatures)} signatures - should be equal"
+            )
+        if set(map(itemgetter("to_id"), self.relations)) == set(
+            map(itemgetter("id"), self.signatures)
+        ):
+            raise ValueError(
+                "Relation target entity IDs don't match signature entity IDs"
+            )
+
+
+def overlap_match(offsets_1: Offsets, offsets_2: Offsets) -> bool:
+    return offsets_1[0] < offsets_2[1] and offsets_1[1] > offsets_2[0]
+
 
 # TODO - contrive an actual implementation
 def check_compatibility(annotation_schema_path: str, loaded_corpus: list[dict]) -> bool:
-    logger.warning(
+    logger.error(
         "Compatibility check not enforced - calling it for developer awareness"
     )
     return True
+
+
+def recoordinate_signature_cluster(
+    new_rt_entity: dict, signature_cluster: SignatureCluster
+) -> SignatureCluster:
+    def update_relation(relation: dict) -> dict:
+        relation["from_id"] = new_rt_entity["id"]
+        return relation
+
+    return SignatureCluster(
+        central_dose=new_rt_entity,
+        signatures=signature_cluster.signatures,
+        relations=set(map(update_relation, signature_cluster.relations)),
+    )
 
 
 def build_entity_id_to_entity_map(entities: list[dict]) -> Mapping[str, dict]:
     return {entity["id"]: entity for entity in entities}
 
 
+def single_offset_coordination(
+    first: Collection[Offsets], second: Collection[Offsets]
+) -> Mapping[Offsets, Collection[Offsets]]:
+    return {}
+
+
+def double_offset_coordination(
+    first: Collection[Offsets], second: Collection[Offsets]
+) -> Mapping[Offsets, Offsets]:
+    return {}
+
+
 def align_results(
     results_with_updates: Collection[dict],
     results_to_updates: Collection[dict],
 ) -> Sequence[dict]:
+    offsets_to_radiation_therapy = get_offsets_to_radiation_therapy_mapping(
+        dictionary_pre_annotations=results_to_updates
+    )
+    offsets_to_adverse_event = get_offsets_to_adverse_event_mapping(
+        dictionary_pre_annotations=results_to_updates
+    )
+    offsets_to_signature_cluster = get_offsets_to_signature_cluster_mapping(
+        signature_pre_annotations=results_with_updates
+    )
+    for signature_offsets, signature_cluster in offsets_to_signature_cluster.items():
+        overlaps = [
+            rt_entity
+            for rt_offsets, rt_entity in offsets_to_radiation_therapy.items()
+            if overlap_match(signature_offsets, rt_offsets)
+        ]
     return []
+
+
+def get_offsets_to_signature_cluster_mapping(
+    signature_pre_annotations: Iterable[dict],
+) -> Mapping[Offsets, SignatureCluster]:
+    return {}
+
+
+def get_offsets_to_radiation_therapy_mapping(
+    dictionary_pre_annotations: Iterable[dict],
+) -> Mapping[Offsets, dict]:
+    return {}
+
+
+def get_offsets_to_adverse_event_mapping(
+    dictionary_pre_annotations: Iterable[dict],
+) -> Mapping[Offsets, dict]:
+    return {}
 
 
 def align_annotated_files(
@@ -89,7 +175,7 @@ def id_based_aggregate_and_align(
                 yield corpus_with_update[file_id]
             case False, True:
                 logger.warning("%d in original corpus but not in updated", file_id)
-                yield corpus_with_update[file_id]
+                yield corpus_to_update[file_id]
             case True, True:
                 logger.warning(
                     "%d in both original and updated corpora - updating and resolving conflicts",
