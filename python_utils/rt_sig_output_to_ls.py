@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping, Collection
 import argparse
 import json
 import os
-from functools import cache
+from functools import cache, partial
 import polars as pl
 
 parser = argparse.ArgumentParser(description="")
@@ -47,6 +47,10 @@ RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE = {
 class AnnotationStage(Enum):
     predictions = "predictions"
     annotations = "annotations"
+
+
+def build_id(tag: str, file_index: int, row_index: int, annotation_index: int) -> str:
+    return f"{file_index}_{tag}_{row_index}_{annotation_index}"
 
 
 def ctakes_csv_to_ls_file_annotation(
@@ -102,7 +106,7 @@ def ctakes_csv_to_ls_file_annotation(
 
 def build_file_id_to_file_preannotation(
     rt_tables_dir: str, ae_tables_dir: str, file_id_to_file_text: Mapping[int, str]
-) -> Mapping[int, dict]:
+) -> Mapping[int, Mapping[Any, Any]]:
     def __file_id(fn: str) -> int:
         return int(fn.split("_")[0])
 
@@ -130,8 +134,10 @@ def build_file_id_to_file_preannotation(
         raise ValueError(
             f"Of {len(ae_table_files)} ae files {len(file_id_to_ae_table)} are unique"
         )
+    all_ids = file_id_to_rt_table.keys() | file_id_to_ae_table.keys()
+    total_files = len(all_ids)
 
-    def file_id_to_ls_annotation(file_id: int) -> Mapping[Any, Any]:
+    def file_id_to_ls_annotation(file_id: int, index: int) -> Mapping[Any, Any]:
         rt_table_fn = file_id_to_rt_table.get(file_id)
         ae_table_fn = file_id_to_ae_table.get(file_id)
         if rt_table_fn is None and ae_table_fn is None:
@@ -143,23 +149,15 @@ def build_file_id_to_file_preannotation(
             ae_csv_path=os.path.join(ae_tables_dir, ae_table_fn)
             if ae_table_fn is not None
             else None,
-            file_index=file_id,
-            total_files=len(file_id_to_rt_table.keys() | file_id_to_ae_table.keys()),
+            file_index=index,
+            total_files=total_files,
             file_text=file_id_to_file_text.get(file_id, "MISSING_FILE_TEXT"),
             annotation_state=AnnotationStage.predictions,
         )
 
     return {
-        __file_id(table_fn): ctakes_csv_to_ls_file_annotation(
-            csv_path=os.path.join(tables_dir, table_fn),
-            file_index=file_index,
-            total_files=len(table_files),
-            file_text=file_id_to_file_text.get(
-                __file_id(table_fn), "MISSING_FILE_TEXT"
-            ),
-            annotation_state=AnnotationStage.predictions,
-        )
-        for file_index, table_fn in enumerate(table_files)
+        file_id: file_id_to_ls_annotation(file_id=file_id, index=index)
+        for index, file_id in enumerate(sorted(all_ids), start=1)
     }
 
 
@@ -242,8 +240,30 @@ def dtr_cell_to_ls_entity(
     )
 
 
+def ae_cell_to_ls_entity(
+    start: int, end: int, text: str | None, ls_id: str, origin: str
+) -> dict:
+    return cell_to_ls_entity(
+        start=start,
+        end=end,
+        text=text,
+        entity_type="labels",
+        entity_labels=["Adverse Event"],
+        ls_id=ls_id,
+        from_name="Event",
+        to_name="text",
+        origin=origin,
+    )
+
+
 def rt_cell_to_ls_entity(
-    start: int, end: int, text: str | None, rt_column_name: str, ls_id: str, origin: str
+    start: int,
+    end: int,
+    text: str | None,
+    rt_column_name: str,
+    ls_id: str,
+    from_name: str,
+    origin: str,
 ) -> dict:
     return cell_to_ls_entity(
         start=start,
@@ -252,7 +272,7 @@ def rt_cell_to_ls_entity(
         entity_type="labels",
         entity_labels=[RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE[rt_column_name]],
         ls_id=ls_id,
-        from_name="RadiotherapySignature",
+        from_name=from_name,
         to_name="text",
         origin=origin,
     )
@@ -284,39 +304,41 @@ def cell_to_ls_entity(
     }
 
 
-def old_rt_cell_to_ls_entity(
-    column_name: str,
-    start: int,
-    end: int,
-    ls_id: str,
-    text: str | None = None,
-    from_name: str = "RadiotherapySignature",
-    to_name: str = "text",
-    entity_type: str = "labels",
-    origin: str = "prediction",
-    column_mapping: Mapping[str, str] = RT_COLUMN_SIGNATURE_TO_LS_SIGNATURE,
-) -> dict:
-    return {
-        "value": {
-            "start": start,
-            "end": end,
-            "text": text,
-            entity_type: [column_mapping[column_name]],
-        },
-        "id": ls_id,
-        "from_name": from_name,
-        "to_name": to_name,
-        "type": entity_type,
-        "origin": origin,
-    }
-
-
 def ae_dict_to_ls_annotations(
     row_dict: Mapping[str, str],
     file_index: int,
     row_index: int,
+    # anchor_column: str = "adverse_event",
 ) -> Iterable[dict]:
-    return []
+    ae_tag = "ae"
+    local_build_id = partial(
+        build_id, file_index=file_index, row_index=row_index, tag=ae_tag
+    )
+    core_event = row_dict.get("adverse_event")
+    if core_event is None:
+        raise ValueError("Missing core AE entity")
+    offsets = parse_offset_str(core_event)
+    if offsets is None:
+        raise ValueError(f"Malformed offsets {offsets}")
+    event_begin, event_end = offsets
+    yield ae_cell_to_ls_entity(
+        start=event_begin,
+        end=event_end,
+        text=None,
+        ls_id=local_build_id(annotation_index=0),
+        origin="prediction",
+    )
+    dtr = row_dict.get("dtr")
+    if not isinstance(dtr, str) or dtr == "None":
+        raise ValueError(f"Malformed DTR: {dtr}")
+    yield dtr_cell_to_ls_entity(
+        start=event_begin,
+        end=event_end,
+        text=None,  # TODO - maybe file text
+        dtr_labels=[dtr],
+        ls_id=local_build_id(annotation_index=0),
+        origin="prediction",
+    )
 
 
 def rt_dict_to_ls_annotations(
@@ -326,7 +348,11 @@ def rt_dict_to_ls_annotations(
     anchor_column: str = "central_dose",
 ) -> Iterable[dict]:
     current = 0
+    rt_tag = "rt"
     fixed_row_dict = {}
+    local_build_id = partial(
+        build_id, file_index=file_index, row_index=row_index, tag=rt_tag
+    )
     for raw_column, raw_cell in row_dict.items():
         column = raw_column.strip()
         if raw_cell != "None":
@@ -336,11 +362,8 @@ def rt_dict_to_ls_annotations(
                 offsets = parse_offset_str(raw_cell)
                 fixed_row_dict[column] = offsets
 
-    def build_id(annotation_index) -> str:
-        return f"{file_index}_{row_index}_{annotation_index}"
-
     def build_ls_entity(
-        column_name: str, ls_id: str, origin: str = "prediction"
+        column_name: str, ls_id: str, from_name: str, origin: str = "prediction"
     ) -> dict:
         if column_name == "dtr":
             return dtr_cell_to_ls_entity(
@@ -353,20 +376,23 @@ def rt_dict_to_ls_annotations(
             )
         return rt_cell_to_ls_entity(
             start=fixed_row_dict[column_name][0],
-            end=fixed_row_dict[column_name][0],
+            end=fixed_row_dict[column_name][1],
             text=None,
             rt_column_name=column_name,
             ls_id=ls_id,
+            from_name=from_name,
             origin=origin,
         )
 
-    anchor_id = build_id(current)
-    anchor_entity = build_ls_entity(anchor_column, anchor_id)
+    anchor_id = local_build_id(annotation_index=current)
+    anchor_entity = build_ls_entity(anchor_column, anchor_id, from_name="Event")
     current += 1
     id_to_signature = {}
     for signature_column in fixed_row_dict.keys() - {anchor_column}:
-        signature_id = build_id(current)
-        id_to_signature[signature_id] = build_ls_entity(signature_column, signature_id)
+        signature_id = local_build_id(annotation_index=current)
+        id_to_signature[signature_id] = build_ls_entity(
+            signature_column, signature_id, from_name="RadiotherapySignature"
+        )
         current += 1
     relations = (
         entities_to_relation(from_id=anchor_id, to_id=signature_id)
