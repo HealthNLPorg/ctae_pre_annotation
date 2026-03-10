@@ -1,6 +1,8 @@
+from typing import Any
+from more_itertools import map_reduce, one
 from enum import Enum
 from itertools import chain
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Collection
 import argparse
 import json
 import os
@@ -10,20 +12,20 @@ import polars as pl
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument(
-    "--tables_dir",
+    "--rt_tables_dir",
     type=str,
-    help="Where the cTAKES output is",
+    help="Where the cTAKES RT output is",
 )
 
 parser.add_argument(
-    "--notes_dir",
+    "--ae_tables_dir",
     type=str,
-    help="Where the cTAKES output is",
+    help="Where the cTAKES AE output is",
 )
 parser.add_argument(
-    "--character_offset_map_table",
+    "--notes_dir",
     type=str,
-    help="Character offset mapping (ASCII only to original) in TSV table",
+    help="Where the original notes are",
 )
 parser.add_argument(
     "--output_dir",
@@ -48,38 +50,105 @@ class AnnotationStage(Enum):
 
 
 def ctakes_csv_to_ls_file_annotation(
-    csv_path: str,
+    rt_csv_path: str | None,
+    ae_csv_path: str | None,
     file_index: int,
     total_files: int,
     file_text: str,
     annotation_state: Enum,
-) -> dict:
+) -> Mapping[Any, Any]:
     # Remove straggler rows where all cells are null
-    rt_frame = pl.read_csv(csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
+
+    rt_frame = (
+        pl.read_csv(rt_csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
+        if rt_csv_path is not None
+        else None
+    )
+    ae_frame = (
+        pl.read_csv(ae_csv_path).filter(~pl.all_horizontal(pl.all().is_null()))
+        if ae_csv_path is not None
+        else None
+    )
+    rt_annotations = (
+        chain.from_iterable(
+            rt_dict_to_ls_annotations(
+                row_dict=row_dict, file_index=file_index, row_index=row_index
+            )
+            for row_index, row_dict in enumerate(rt_frame.to_dicts())
+        )
+        if rt_frame is not None
+        else []
+    )
+
+    ae_annotations = (
+        chain.from_iterable(
+            ae_dict_to_ls_annotations(
+                row_dict=row_dict, file_index=file_index, row_index=row_index
+            )
+            for row_index, row_dict in enumerate(ae_frame.to_dicts())
+        )
+        if ae_frame is not None
+        else []
+    )
     return {
         "id": file_index,
         "data": {"text": file_text},
         annotation_state.value: {
             "id": file_index + total_files,
-            "result": list(
-                chain.from_iterable(
-                    row_dict_to_ls_annotations(
-                        row_dict=row_dict, file_index=file_index, row_index=row_index
-                    )
-                    for row_index, row_dict in enumerate(rt_frame.to_dicts())
-                )
-            ),
+            "result": list(chain(ae_annotations, rt_annotations)),
         },
     }
 
 
 def build_file_id_to_file_preannotation(
-    tables_dir: str, file_id_to_file_text: Mapping[int, str]
+    rt_tables_dir: str, ae_tables_dir: str, file_id_to_file_text: Mapping[int, str]
 ) -> Mapping[int, dict]:
     def __file_id(fn: str) -> int:
         return int(fn.split("_")[0])
 
-    table_files = os.listdir(tables_dir)
+    def warned_first(files: Collection[str]) -> str:
+        try:
+            return one(files)
+        except Exception:
+            raise ValueError(
+                f"More than one ({len(files)}) files for file id {__file_id(next(iter(files)))}"
+            )
+
+    rt_table_files = os.listdir(rt_tables_dir)
+    ae_table_files = os.listdir(ae_tables_dir)
+    file_id_to_rt_table = map_reduce(
+        rt_table_files, keyfunc=__file_id, reducefunc=warned_first
+    )
+    if len(file_id_to_rt_table) != len(rt_table_files):
+        raise ValueError(
+            f"Of {len(rt_table_files)} rt files {len(file_id_to_rt_table)} are unique"
+        )
+    file_id_to_ae_table = map_reduce(
+        ae_table_files, keyfunc=__file_id, reducefunc=warned_first
+    )
+    if len(file_id_to_ae_table) != len(ae_table_files):
+        raise ValueError(
+            f"Of {len(ae_table_files)} ae files {len(file_id_to_ae_table)} are unique"
+        )
+
+    def file_id_to_ls_annotation(file_id: int) -> Mapping[Any, Any]:
+        rt_table_fn = file_id_to_rt_table.get(file_id)
+        ae_table_fn = file_id_to_ae_table.get(file_id)
+        if rt_table_fn is None and ae_table_fn is None:
+            raise ValueError(f"Missing both tables for {file_id}")
+        return ctakes_csv_to_ls_file_annotation(
+            rt_csv_path=os.path.join(rt_tables_dir, rt_table_fn)
+            if rt_table_fn is not None
+            else None,
+            ae_csv_path=os.path.join(ae_tables_dir, ae_table_fn)
+            if ae_table_fn is not None
+            else None,
+            file_index=file_id,
+            total_files=len(file_id_to_rt_table.keys() | file_id_to_ae_table.keys()),
+            file_text=file_id_to_file_text.get(file_id, "MISSING_FILE_TEXT"),
+            annotation_state=AnnotationStage.predictions,
+        )
+
     return {
         __file_id(table_fn): ctakes_csv_to_ls_file_annotation(
             csv_path=os.path.join(tables_dir, table_fn),
@@ -242,7 +311,15 @@ def old_rt_cell_to_ls_entity(
     }
 
 
-def row_dict_to_ls_annotations(
+def ae_dict_to_ls_annotations(
+    row_dict: Mapping[str, str],
+    file_index: int,
+    row_index: int,
+) -> Iterable[dict]:
+    return []
+
+
+def rt_dict_to_ls_annotations(
     row_dict: Mapping[str, str],
     file_index: int,
     row_index: int,
@@ -298,17 +375,6 @@ def row_dict_to_ls_annotations(
     return chain((anchor_entity,), id_to_signature.values(), relations)
 
 
-# of the form
-# <ascii begin>_<original begin>,...,<ascii begin>_<original begin>
-def get_offset_map_from_string(offset_map_string: str) -> dict[int, int]:
-    return {
-        ascii_offset: original_offset
-        for ascii_offset, original_offset in filter(
-            None, map(parse_offset_str, offset_map_string.split(","))
-        )
-    }
-
-
 @cache
 def parse_offset_str(offset_str: str) -> tuple[int, int] | None:
     elements = offset_str.split("_")
@@ -318,65 +384,25 @@ def parse_offset_str(offset_str: str) -> tuple[int, int] | None:
     return int(begin), int(end)
 
 
-def adjust_indices(
-    report_id: int,
-    character_offset_map: dict[int, int],
-    signature_row_dict: dict[str, str],
-) -> dict[str, tuple[int, int]]:
-    def parse_and_adjust(offset_str: str) -> tuple[int, int] | None:
-        result = parse_offset_str(offset_str)
-        if result is None:
-            raise ValueError(
-                f"Report ID: {report_id} - could not parse offset string {offset_str}"
-            )
-        ascii_begin, ascii_end = result
-        original_begin = character_offset_map.get(ascii_begin)
-        original_end = character_offset_map.get(ascii_end)
-        if original_begin is None or original_end is None:
-            raise ValueError(
-                f"Report ID: {report_id} - ASCII begin {ascii_begin} obtained {original_begin}, ASCII end {ascii_end} obtained {original_end}"
-            )
-        return original_begin, original_end
-
-    final = {}
-    for signature, offset_str in signature_row_dict.items():
-        offsets = parse_and_adjust(offset_str)
-        if offsets is not None:
-            final[signature.strip()] = offsets
-    return final
-
-
-def get_report_id_to_offset_map(
-    character_offset_map_table: str,
-    report_id_col_key: str = "FIXME",
-    offset_map_col_key: str = "FIXME",
-) -> dict[int, dict[int, int]]:
-    df = pl.read_csv(character_offset_map_table, separator="\t")
-    return {
-        int(report_id): get_offset_map_from_string(offset_map_string)
-        for report_id, offset_map_string in zip(
-            df[report_id_col_key], df[offset_map_col_key]
-        )
-    }
-
-
 def build_and_write_jsonl(
-    tables_dir: str, notes_dir: str, character_offset_map_table: str, output_dir: str
+    rt_tables_dir: str, ae_tables_dir: str, notes_dir: str, output_dir: str
 ) -> None:
     file_id_to_file_text = build_file_id_to_file_text(notes_dir)
     file_id_to_file_preannotation = build_file_id_to_file_preannotation(
-        tables_dir=tables_dir, file_id_to_file_text=file_id_to_file_text
+        rt_tables_dir=rt_tables_dir,
+        ae_tables_dir=ae_tables_dir,
+        file_id_to_file_text=file_id_to_file_text,
     )
     with open(os.path.join(output_dir, "label_studio_corpus.json"), mode="w") as f:
-        f.write(json.dumps(list(file_id_to_file_preannotation.values())))
+        json.dump(list(file_id_to_file_preannotation.values()), f)
 
 
 def main() -> None:
     args = parser.parse_args()
     build_and_write_jsonl(
-        args.tables_dir,
+        args.rt_tables_dir,
+        args.ae_tables_dir,
         args.notes_dir,
-        args.character_offset_map_table,
         args.output_dir,
     )
 
