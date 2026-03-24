@@ -76,7 +76,10 @@ def ctakes_csv_to_ls_file_annotation(
     rt_annotations = (
         chain.from_iterable(
             rt_dict_to_ls_annotations(
-                row_dict=row_dict, file_index=file_index, row_index=row_index
+                row_dict=row_dict,
+                file_index=file_index,
+                row_index=row_index,
+                file_text=file_text,
             )
             for row_index, row_dict in enumerate(rt_frame.to_dicts())
         )
@@ -87,7 +90,10 @@ def ctakes_csv_to_ls_file_annotation(
     ae_annotations = (
         chain.from_iterable(
             ae_dict_to_ls_annotations(
-                row_dict=row_dict, file_index=file_index, row_index=row_index
+                row_dict=row_dict,
+                file_index=file_index,
+                row_index=row_index,
+                file_text=file_text,
             )
             for row_index, row_dict in enumerate(ae_frame.to_dicts())
         )
@@ -97,10 +103,12 @@ def ctakes_csv_to_ls_file_annotation(
     return {
         "id": file_index,
         "data": {"text": file_text},
-        annotation_state.value: {
-            "id": file_index + total_files,
-            "result": list(chain(ae_annotations, rt_annotations)),
-        },
+        annotation_state.value: [
+            {
+                "id": file_index + total_files,
+                "result": list(chain(ae_annotations, rt_annotations)),
+            }
+        ],
     }
 
 
@@ -308,7 +316,7 @@ def ae_dict_to_ls_annotations(
     row_dict: Mapping[str, str],
     file_index: int,
     row_index: int,
-    # anchor_column: str = "adverse_event",
+    file_text: str,
 ) -> Iterable[dict]:
     ae_tag = "ae"
     local_build_id = partial(
@@ -320,11 +328,12 @@ def ae_dict_to_ls_annotations(
     offsets = parse_offset_str(core_event)
     if offsets is None:
         raise ValueError(f"Malformed offsets {offsets}")
-    event_begin, event_end = offsets
+    start, end = offsets
+    text = file_text[start:end]
     yield ae_cell_to_ls_entity(
-        start=event_begin,
-        end=event_end,
-        text=None,
+        start=start,
+        end=end,
+        text=text,
         ls_id=local_build_id(annotation_index=0),
         origin="prediction",
     )
@@ -332,9 +341,9 @@ def ae_dict_to_ls_annotations(
     if not isinstance(dtr, str) or dtr == "None":
         raise ValueError(f"Malformed DTR: {dtr}")
     yield dtr_cell_to_ls_entity(
-        start=event_begin,
-        end=event_end,
-        text=None,  # TODO - maybe file text
+        start=start,
+        end=end,
+        text=text,
         dtr_labels=[dtr],
         ls_id=local_build_id(annotation_index=0),
         origin="prediction",
@@ -345,6 +354,7 @@ def rt_dict_to_ls_annotations(
     row_dict: Mapping[str, str],
     file_index: int,
     row_index: int,
+    file_text: str,
     anchor_column: str = "central_dose",
 ) -> Iterable[dict]:
     current = 0
@@ -365,19 +375,22 @@ def rt_dict_to_ls_annotations(
     def build_ls_entity(
         column_name: str, ls_id: str, from_name: str, origin: str = "prediction"
     ) -> dict:
+        start = fixed_row_dict[anchor_column][0]
+        end = fixed_row_dict[anchor_column][1]
+        text = file_text[start:end]
         if column_name == "dtr":
             return dtr_cell_to_ls_entity(
-                start=fixed_row_dict[anchor_column][0],
-                end=fixed_row_dict[anchor_column][1],
+                start=start,
+                end=end,
                 text=None,  # TODO - maybe file text
                 dtr_labels=fixed_row_dict[column_name],
                 ls_id=ls_id,
                 origin=origin,
             )
         return rt_cell_to_ls_entity(
-            start=fixed_row_dict[column_name][0],
-            end=fixed_row_dict[column_name][1],
-            text=None,
+            start=start,
+            end=end,
+            text=text,
             rt_column_name=column_name,
             ls_id=ls_id,
             from_name=from_name,
