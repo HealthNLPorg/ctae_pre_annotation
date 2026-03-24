@@ -319,6 +319,7 @@ def ae_dict_to_ls_annotations(
     file_text: str,
 ) -> Iterable[dict]:
     ae_tag = "ae"
+    current = 0
     local_build_id = partial(
         build_id, file_index=file_index, row_index=row_index, tag=ae_tag
     )
@@ -334,7 +335,7 @@ def ae_dict_to_ls_annotations(
         start=start,
         end=end,
         text=text,
-        ls_id=local_build_id(annotation_index=0),
+        ls_id=local_build_id(annotation_index=current),
         origin="prediction",
     )
     dtr = row_dict.get("dtr")
@@ -345,7 +346,7 @@ def ae_dict_to_ls_annotations(
         end=end,
         text=text,
         dtr_labels=[dtr],
-        ls_id=local_build_id(annotation_index=0),
+        ls_id=local_build_id(annotation_index=current),
         origin="prediction",
     )
 
@@ -382,7 +383,7 @@ def rt_dict_to_ls_annotations(
             return dtr_cell_to_ls_entity(
                 start=start,
                 end=end,
-                text=None,  # TODO - maybe file text
+                text=text,
                 dtr_labels=fixed_row_dict[column_name],
                 ls_id=ls_id,
                 origin=origin,
