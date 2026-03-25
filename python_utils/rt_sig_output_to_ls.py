@@ -248,6 +248,27 @@ def dtr_cell_to_ls_entity(
     )
 
 
+def cui_cell_to_ls_entity(
+    start: int,
+    end: int,
+    text: str | None,
+    cui_labels: list[str],
+    ls_id: str,
+    origin: str,
+) -> dict:
+    return cell_to_ls_entity(
+        start=start,
+        end=end,
+        text=text,
+        entity_type="textarea",
+        entity_labels=cui_labels,
+        ls_id=ls_id,
+        from_name="CUI",
+        to_name="text",
+        origin=origin,
+    )
+
+
 def ae_cell_to_ls_entity(
     start: int, end: int, text: str | None, ls_id: str, origin: str
 ) -> dict:
@@ -349,6 +370,17 @@ def ae_dict_to_ls_annotations(
         ls_id=local_build_id(annotation_index=current),
         origin="prediction",
     )
+    cui = row_dict.get("cuis")
+    if not isinstance(cui, str) or cui == "None":
+        raise ValueError(f"Malformed CUIs: {cui}")
+    yield cui_cell_to_ls_entity(
+        start=start,
+        end=end,
+        text=text,
+        cui_labels=cui.split("_"),
+        ls_id=local_build_id(annotation_index=current),
+        origin="prediction",
+    )
 
 
 def rt_dict_to_ls_annotations(
@@ -367,11 +399,16 @@ def rt_dict_to_ls_annotations(
     for raw_column, raw_cell in row_dict.items():
         column = raw_column.strip()
         if raw_cell != "None":
-            if column == "dtr":
-                fixed_row_dict[column] = [raw_cell]
-            else:
-                offsets = parse_offset_str(raw_cell)
-                fixed_row_dict[column] = offsets
+            match column:
+                case "dtr":
+                    fixed_row_dict[column] = [raw_cell]
+                case "cuis":
+                    fixed_row_dict[column] = (
+                        ["C1522449"] if raw_cell is None else raw_cell.split("_")
+                    )
+                case _:
+                    offsets = parse_offset_str(raw_cell)
+                    fixed_row_dict[column] = offsets
 
     def build_ls_entity(
         column_name: str, ls_id: str, from_name: str, origin: str = "prediction"
@@ -379,24 +416,35 @@ def rt_dict_to_ls_annotations(
         start = fixed_row_dict[anchor_column][0]
         end = fixed_row_dict[anchor_column][1]
         text = file_text[start:end]
-        if column_name == "dtr":
-            return dtr_cell_to_ls_entity(
-                start=start,
-                end=end,
-                text=text,
-                dtr_labels=fixed_row_dict[column_name],
-                ls_id=ls_id,
-                origin=origin,
-            )
-        return rt_cell_to_ls_entity(
-            start=start,
-            end=end,
-            text=text,
-            rt_column_name=column_name,
-            ls_id=ls_id,
-            from_name=from_name,
-            origin=origin,
-        )
+        match column_name:
+            case "dtr":
+                return dtr_cell_to_ls_entity(
+                    start=start,
+                    end=end,
+                    text=text,
+                    dtr_labels=fixed_row_dict[column_name],
+                    ls_id=ls_id,
+                    origin=origin,
+                )
+            case "cuis":
+                return cui_cell_to_ls_entity(
+                    start=start,
+                    end=end,
+                    text=text,
+                    cui_labels=fixed_row_dict[column_name],
+                    ls_id=ls_id,
+                    origin=origin,
+                )
+            case _:
+                return rt_cell_to_ls_entity(
+                    start=start,
+                    end=end,
+                    text=text,
+                    rt_column_name=column_name,
+                    ls_id=ls_id,
+                    from_name=from_name,
+                    origin=origin,
+                )
 
     anchor_id = local_build_id(annotation_index=current)
     anchor_entity = build_ls_entity(anchor_column, anchor_id, from_name="Event")
