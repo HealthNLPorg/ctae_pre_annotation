@@ -251,22 +251,18 @@ def dtr_cell_to_ls_entity(
 def cui_cell_to_ls_entity(
     start: int,
     end: int,
-    text: str | None,
     cui_labels: list[str],
     ls_id: str,
     origin: str,
 ) -> dict:
-    return cell_to_ls_entity(
-        start=start,
-        end=end,
-        text=text,
-        entity_type="textarea",
-        entity_labels=cui_labels,
-        ls_id=ls_id,
-        from_name="CUI",
-        to_name="text",
-        origin=origin,
-    )
+    return {
+        "value": {"start": start, "end": end, "text": cui_labels},
+        "id": ls_id,
+        "from_name": "CUI",
+        "to_name": "text",
+        "type": "textarea",
+        "origin": origin,
+    }
 
 
 def ae_cell_to_ls_entity(
@@ -376,7 +372,6 @@ def ae_dict_to_ls_annotations(
     yield cui_cell_to_ls_entity(
         start=start,
         end=end,
-        text=text,
         cui_labels=cui.split("_"),
         ls_id=local_build_id(annotation_index=current),
         origin="prediction",
@@ -409,15 +404,20 @@ def rt_dict_to_ls_annotations(
                 case _:
                     offsets = parse_offset_str(raw_cell)
                     fixed_row_dict[column] = offsets
+    # if file_index == 3:
+    #     raise ValueError(fixed_row_dict)
 
     def build_ls_entity(
-        column_name: str, ls_id: str, from_name: str, origin: str = "prediction"
+        column_name: str,
+        ls_id: str,
+        from_name: str = "Event",
+        origin: str = "prediction",
     ) -> dict:
-        start = fixed_row_dict[anchor_column][0]
-        end = fixed_row_dict[anchor_column][1]
-        text = file_text[start:end]
         match column_name:
             case "dtr":
+                start = fixed_row_dict[anchor_column][0]
+                end = fixed_row_dict[anchor_column][1]
+                text = file_text[start:end]
                 return dtr_cell_to_ls_entity(
                     start=start,
                     end=end,
@@ -427,15 +427,19 @@ def rt_dict_to_ls_annotations(
                     origin=origin,
                 )
             case "cuis":
+                start = fixed_row_dict[anchor_column][0]
+                end = fixed_row_dict[anchor_column][1]
                 return cui_cell_to_ls_entity(
                     start=start,
                     end=end,
-                    text=text,
                     cui_labels=fixed_row_dict[column_name],
                     ls_id=ls_id,
                     origin=origin,
                 )
             case _:
+                start = fixed_row_dict[column_name][0]
+                end = fixed_row_dict[column_name][1]
+                text = file_text[start:end]
                 return rt_cell_to_ls_entity(
                     start=start,
                     end=end,
@@ -447,20 +451,37 @@ def rt_dict_to_ls_annotations(
                 )
 
     anchor_id = local_build_id(annotation_index=current)
+    dtr_column = "dtr"
+    cui_column = "cuis"
     anchor_entity = build_ls_entity(anchor_column, anchor_id, from_name="Event")
+    dtr_entity = build_ls_entity(dtr_column, anchor_id)
+    cuis_entity = build_ls_entity(cui_column, anchor_id)
     current += 1
     id_to_signature = {}
-    for signature_column in fixed_row_dict.keys() - {anchor_column}:
+    for signature_column in fixed_row_dict.keys() - {
+        anchor_column,
+        dtr_column,
+        cui_column,
+    }:
         signature_id = local_build_id(annotation_index=current)
         id_to_signature[signature_id] = build_ls_entity(
             signature_column, signature_id, from_name="RadiotherapySignature"
         )
         current += 1
     relations = (
-        entities_to_relation(from_id=anchor_id, to_id=signature_id)
+        entities_to_relation(
+            from_id=anchor_id,
+            to_id=signature_id,
+            direction="right"
+            if anchor_entity["value"]["start"]
+            <= id_to_signature[signature_id]["value"]["start"]
+            else "left",
+        )
         for signature_id in id_to_signature.keys()
     )
-    return chain((anchor_entity,), id_to_signature.values(), relations)
+    return chain(
+        (anchor_entity, dtr_entity, cuis_entity), id_to_signature.values(), relations
+    )
 
 
 @cache
