@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = ["polars", "ruff", "ty", "more-itertools", "lseval"]
+dependencies = ["polars", "ruff", "ty", "more-itertools", "lseval", "frozendict", "frozenlist"]
 
 [tool.uv.sources]
 lseval = { path = "/Users/etg/Repos/lseval", editable = true }
