@@ -426,37 +426,38 @@ def rt_frame_to_ls_annotations(
         if center_dose_offsets is None:
             raise ValueError(f"Malformed center dose offsets: {offset_str}")
         for column in non_dose_attr_columns:
-            vals = {
+            result[column] = {
                 parse_offset_str(val)
                 for val in set(sub_table[column].to_list())
                 if val != "None" and val is not None
             }
-            try:
-                offsets = one(
-                    vals,
-                    too_long=ValueError,
-                    too_short=IndexError,
-                )
-            except ValueError:
-                logger.error(
-                    "Bad values for column %s: %s - Selecting element closest to center dose",
-                    column,
-                    ", ".join(map(str, sorted(vals))),
-                )
-                offsets = min(vals, key=lambda s: abs(s[0] - center_dose_offsets[0]))
-            except IndexError:
-                offsets = None
-            if offsets is not None:
-                result[column] = offsets
+            # try:
+            #     offsets = one(
+            #         vals,
+            #         too_long=ValueError,
+            #         too_short=IndexError,
+            #     )
+            # except ValueError:
+            #     logger.error(
+            #         "File ID %d - Bad values for column %s: %s - Selecting element closest to center dose",
+            #         file_index,
+            #         column,
+            #         ", ".join(map(str, sorted(vals))),
+            #     )
+            #     offsets = min(vals, key=lambda s: abs(s[0] - center_dose_offsets[0]))
+            # except IndexError:
+            #     offsets = None
+            # if offsets is not None:
+            #     result[column] = offsets
         center_dose_to_signatures[center_dose_offsets] = result
     for signatures in center_dose_to_signatures.values():
-        secondary_dose = signatures.get("secondary_dose")
-        if (
-            secondary_dose is not None
-            and secondary_dose not in center_dose_to_signatures.keys()
+        secondary_doses = signatures.get("secondary_dose")
+        if secondary_doses is not None and any(
+            secondary_dose not in center_dose_to_signatures.keys()
+            for secondary_dose in secondary_doses
         ):
             raise ValueError(
-                f"Secondary dose offsets {secondary_dose} not found among center dose offsets {sorted(center_dose_to_signatures.keys())}"
+                f"Secondary dose offsets {secondary_doses} not found among center dose offsets {sorted(center_dose_to_signatures.keys())}"
             )
 
     dose_offsets_to_annotations = defaultdict(set)
@@ -466,12 +467,16 @@ def rt_frame_to_ls_annotations(
             sorted(
                 set(
                     chain(
-                        {(k, "central_dose") for k in center_dose_to_signatures.keys()},
                         (
-                            (v, k)
-                            for _val in center_dose_to_signatures.values()
-                            for k, v in _val.items()
-                            if k not in {"dtr", "cuis", "secondary_dose"}
+                            (center_dose_offsets, "central_dose")
+                            for center_dose_offsets in center_dose_to_signatures.keys()
+                        ),
+                        (
+                            (sig_offsets, sig_name)
+                            for results in center_dose_to_signatures.values()
+                            for sig_name, sig_offset_set in results.items()
+                            for sig_offsets in sig_offset_set
+                            if sig_name not in {"dtr", "cuis", "secondary_dose"}
                         ),
                     )
                 )
@@ -497,19 +502,16 @@ def rt_frame_to_ls_annotations(
     for center_dose_offsets, value_dict in center_dose_to_signatures.items():
         center_dose_id = f"{file_index}_rt_{offsets_and_type_to_index.get((center_dose_offsets, 'central_dose'), 'ERROR')}"
         center_dose_start, center_dose_end = center_dose_offsets
-        secondary_dose = value_dict.get("secondary_dose")
-        if secondary_dose is not None:
-            if secondary_dose not in dose_offsets_to_annotations.keys():
-                raise ValueError(
-                    f"Secondary dose offsets {value_dict['secondary_dose']} not found among center dose offsets {sorted(dose_offsets_to_annotations.keys())}"
+        secondary_doses = value_dict.get("secondary_dose")
+        if secondary_doses is not None:
+            for secondary_dose in secondary_doses:
+                secondary_dose_id = f"{file_index}_rt_{offsets_and_type_to_index.get((secondary_dose, 'central_dose'), 'ERROR')}"
+                dose_dose_pairs.add(
+                    (
+                        center_dose_id,
+                        secondary_dose_id,
+                    )
                 )
-            secondary_dose_id = f"{file_index}_rt_{offsets_and_type_to_index.get((secondary_dose, 'central_dose'), 'ERROR')}"
-            dose_dose_pairs.add(
-                (
-                    center_dose_id,
-                    secondary_dose_id,
-                )
-            )
         if value_dict.get("dtr") is None:
             raise ValueError(f"{center_dose_offsets} missing DTR")
         dose_offsets_to_annotations[center_dose_offsets].add(
@@ -540,32 +542,32 @@ def rt_frame_to_ls_annotations(
             "secondary_dose",
             "central_dose",
         }:
-            signature_offsets = value_dict.get(signature_name)
-            if signature_offsets is not None:
-                signature_start, signature_end = signature_offsets
-                ls_id = f"{file_index}_rt_{offsets_and_type_to_index.get((signature_offsets, signature_name), 'ERROR')}"
-                ls_entity = rt_cell_to_ls_entity(
-                    start=signature_start,
-                    end=signature_end,
-                    text=file_text[signature_start:signature_end],
-                    rt_column_name=signature_name,
-                    ls_id=ls_id,
-                    from_name="RadiotherapySignature",
-                    origin="prediction",
-                )
-                signature_offsets_to_annotation[signature_offsets].add(ls_entity)
-                signature_pairs.add(
-                    (
-                        center_dose_id,
-                        ls_id,
+            signature_offset_set = value_dict.get(signature_name)
+            if signature_offset_set is not None:
+                for signature_offsets in signature_offset_set:
+                    signature_start, signature_end = signature_offsets
+                    ls_id = f"{file_index}_rt_{offsets_and_type_to_index.get((signature_offsets, signature_name), 'ERROR')}"
+                    ls_entity = rt_cell_to_ls_entity(
+                        start=signature_start,
+                        end=signature_end,
+                        text=file_text[signature_start:signature_end],
+                        rt_column_name=signature_name,
+                        ls_id=ls_id,
+                        from_name="RadiotherapySignature",
+                        origin="prediction",
                     )
-                )
+                    signature_offsets_to_annotation[signature_offsets].add(ls_entity)
+                    signature_pairs.add(
+                        (
+                            center_dose_id,
+                            ls_id,
+                        )
+                    )
     for v in dose_offsets_to_annotations.values():
         assert len(v) == 3, v
         for elem in v:
             yield elem
     for v in signature_offsets_to_annotation.values():
-        # assert len(v) == 1, v
         for elem in v:
             yield elem
 
