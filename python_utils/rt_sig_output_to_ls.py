@@ -411,7 +411,7 @@ def rt_frame_to_ls_annotations(
         result = {}
         dtrs = set(sub_table["dtr"].to_list())
         try:
-            result["dtr"] = one(dtrs)
+            result["dtr"] = [one(dtrs)]
         except Exception:
             ValueError(f"Inconsistent dtr values {dtrs}")
         cuis = set(sub_table["cuis"].to_list())
@@ -487,7 +487,7 @@ def rt_frame_to_ls_annotations(
                 text=file_text[start:end],
                 rt_column_name="central_dose",
                 ls_id=f"{file_index}_rt_{offsets_and_type_to_index.get((offsets, 'central_dose'), 'ERROR')}",
-                from_name="text",
+                from_name="Event",
                 origin="prediction",
             )
         )
@@ -550,7 +550,7 @@ def rt_frame_to_ls_annotations(
                     text=file_text[signature_start:signature_end],
                     rt_column_name=signature_name,
                     ls_id=ls_id,
-                    from_name="text",
+                    from_name="RadiotherapySignature",
                     origin="prediction",
                 )
                 signature_offsets_to_annotation[signature_offsets].add(ls_entity)
